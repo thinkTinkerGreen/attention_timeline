@@ -1,4 +1,4 @@
-// Attention Timeline - Application Entrypoint
+// Attention Timeline - Application Entrypoint (Classic Research View)
 // Single source of truth: data/mechanisms.json
 
 import mechanismsData from '../data/mechanisms.json';
@@ -48,7 +48,7 @@ function renderApp() {
   const app = document.getElementById('app');
   if (!app) return;
 
-  const initialMech = mechanisms[2] || mechanisms[0]; // standard-mha
+  const initialMech = mechanisms.find((m) => m.id === 'standard-mha') || mechanisms[0];
 
   app.innerHTML = `
     <div class="app-container">
@@ -58,26 +58,46 @@ function renderApp() {
           <div class="brand-group">
             <span style="font-size: 1.5rem;">⚡</span>
             <div>
-              <h1 class="brand-title">How Does Attention Work Now?</h1>
+              <div class="title-with-edition">
+                <h1 class="brand-title">How Does Attention Work Now?</h1>
+                <span class="edition-badge">Classic Research View</span>
+              </div>
               <p class="text-sm text-muted">A Chronological, Honest, and Interactive Explainer (2014 &ndash; 2026)</p>
             </div>
           </div>
 
-          <div class="header-meta">
+          <div class="header-controls-group">
+            <!-- Alternative View Switcher -->
+            <div class="view-switcher" role="group" aria-label="Interface Edition Switcher">
+              <span class="switcher-label">View:</span>
+              <a href="./index.html" class="view-switch-btn active" title="Currently viewing Classic Research Edition">
+                <span class="view-dot"></span> Classic
+              </a>
+              <a href="./apple.html" class="view-switch-btn" title="Switch to Apple.com Design Edition">
+                 Apple Edition
+              </a>
+            </div>
+
             <span class="header-status-badge">
               <span class="status-dot"></span>
               30 / 30 Verified Primary Sources
             </span>
-            <div class="filter-bar" id="tag-filters">
-              <button class="filter-chip active" data-tag="all">All Mechanisms</button>
-              <button class="filter-chip" data-tag="position">#Position</button>
-              <button class="filter-chip" data-tag="decode-memory">#DecodeMemory</button>
-              <button class="filter-chip" data-tag="compute">#Compute</button>
-              <button class="filter-chip" data-tag="long-context">#LongContext</button>
-              <button class="filter-chip" data-tag="recurrent-state">#Recurrence</button>
-              <button class="filter-chip" data-tag="sparsity">#Sparsity</button>
-              <button class="filter-chip" data-tag="compression">#Compression</button>
-            </div>
+          </div>
+        </div>
+
+        <!-- Tag Filters Row -->
+        <div class="filter-bar-container">
+          <div class="filter-label">Filter by Focus:</div>
+          <div class="filter-bar" id="tag-filters" role="tablist">
+            <button class="filter-chip active" data-tag="all">All (30)</button>
+            <button class="filter-chip" data-tag="compute">#Compute</button>
+            <button class="filter-chip" data-tag="decode-memory">#DecodeMemory</button>
+            <button class="filter-chip" data-tag="position">#Position</button>
+            <button class="filter-chip" data-tag="long-context">#LongContext</button>
+            <button class="filter-chip" data-tag="recurrent-state">#Recurrence</button>
+            <button class="filter-chip" data-tag="sparsity">#Sparsity</button>
+            <button class="filter-chip" data-tag="compression">#Compression</button>
+            <button class="filter-chip" data-tag="hybrid">#Hybrid</button>
           </div>
         </div>
       </header>
@@ -86,50 +106,80 @@ function renderApp() {
       <div class="main-layout">
         <!-- Sticky Navigation Rail -->
         <nav class="timeline-nav-rail" aria-label="Timeline navigation">
-          <div class="nav-rail-header">CHRONOLOGY (2014-2026)</div>
-          <ol class="timeline-nav-list" id="timeline-rail-list">
-            <li class="timeline-nav-item">
-              <a href="#standard-attention" class="timeline-nav-link active">
-                <span class="nav-link-date">2017-06-12</span>
-                <span>Scaled Dot-Product</span>
-              </a>
-            </li>
-            <li class="timeline-nav-item">
-              <a href="#kv-cache-calculator-section" class="timeline-nav-link">
-                <span class="nav-link-date">Tool</span>
-                <span>KV Cache Calculator</span>
-              </a>
-            </li>
-            ${mechanisms
-              .map(
-                (m) => `
-              <li class="timeline-nav-item" data-mech-nav="${m.id}">
-                <a href="#mech-${m.id}" class="timeline-nav-link">
-                  <span class="nav-link-date">${m.first_appearance.date}</span>
-                  <span>${m.name.split('(')[0].trim()}</span>
+          <!-- 1. Foundation & Interactive Tools (Outside Chronology) -->
+          <div class="nav-rail-group">
+            <div class="nav-rail-header">FOUNDATION & TOOLS</div>
+            <ul class="nav-tools-list">
+              <li class="nav-tool-item">
+                <a href="#standard-attention" class="nav-tool-link">
+                  <span class="tool-icon">🔍</span>
+                  <span>Standard Attention Hero</span>
                 </a>
               </li>
-            `
-              )
-              .join('')}
-            <li class="timeline-nav-item">
-              <a href="#workload-lens" class="timeline-nav-link">
-                <span class="nav-link-date">Guide</span>
-                <span>Workload Lens</span>
-              </a>
-            </li>
-            <li class="timeline-nav-item">
-              <a href="#takeaways" class="timeline-nav-link">
-                <span class="nav-link-date">Summary</span>
-                <span>10-Year Takeaways</span>
-              </a>
-            </li>
-          </ol>
+              <li class="nav-tool-item">
+                <a href="#kv-cache-calculator-section" class="nav-tool-link">
+                  <span class="tool-icon">🧮</span>
+                  <span>KV Cache Calculator</span>
+                </a>
+              </li>
+              <li class="nav-tool-item">
+                <a href="#position-visualizer-section" class="nav-tool-link">
+                  <span class="tool-icon">🧪</span>
+                  <span>Permutation Invariance</span>
+                </a>
+              </li>
+              <li class="nav-tool-item">
+                <a href="#sinks-visualizer-section" class="nav-tool-link">
+                  <span class="tool-icon">🪟</span>
+                  <span>Sliding Window & Sinks</span>
+                </a>
+              </li>
+              <li class="nav-tool-item">
+                <a href="#recurrent-recall-section" class="nav-tool-link">
+                  <span class="tool-icon">🔁</span>
+                  <span>Recurrent Recall Test</span>
+                </a>
+              </li>
+              <li class="nav-tool-item">
+                <a href="#workload-lens" class="nav-tool-link">
+                  <span class="tool-icon">🎯</span>
+                  <span>Workload Decision Lens</span>
+                </a>
+              </li>
+              <li class="nav-tool-item">
+                <a href="#takeaways" class="nav-tool-link">
+                  <span class="tool-icon">📊</span>
+                  <span>10-Year Takeaways</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <!-- 2. True Chronological List (Strictly 2014 to 2026) -->
+          <div class="nav-rail-group">
+            <div class="nav-rail-header" id="rail-chronology-header">
+              CHRONOLOGY (2014 &ndash; 2026)
+            </div>
+            <ol class="timeline-nav-list" id="timeline-rail-list">
+              ${mechanisms
+                .map(
+                  (m) => `
+                <li class="timeline-nav-item" data-mech-nav="${m.id}" data-tags="${m.tags.join(' ')}">
+                  <a href="#mech-${m.id}" class="timeline-nav-link">
+                    <span class="nav-link-date">${m.first_appearance.date}</span>
+                    <span class="nav-link-name">${m.name.split('(')[0].trim()}</span>
+                  </a>
+                </li>
+              `
+                )
+                .join('')}
+            </ol>
+          </div>
         </nav>
 
         <!-- Main Content Spine -->
         <main class="content-spine">
-          <!-- 1. Foundational Hero: Scaled Dot-Product Attention -->
+          <!-- 1. Foundational Hero: Scaled Dot-Product Attention (Pedagogical Tutorial) -->
           ${renderStandardAttentionHero()}
 
           <!-- 2. Permutation Invariance Interactive Widget -->
@@ -138,8 +188,24 @@ function renderApp() {
           <!-- 3. Universal KV Cache Calculator -->
           ${renderKVCacheCalculatorWidget()}
 
-          <!-- 4. Chronological Mechanism Cards Stream -->
+          <!-- Active Filter Banner (Visible when a filter tag is active) -->
+          <div id="filter-status-banner" class="filter-status-banner" style="display: none;">
+            <div class="banner-content">
+              <span class="banner-icon">🎯</span>
+              <span id="filter-banner-text">Showing mechanisms</span>
+            </div>
+            <button id="btn-clear-filter" class="btn btn-sm btn-clear-filter">Show All (30)</button>
+          </div>
+
+          <!-- 4. Chronological Mechanism Cards Stream (Starting from 2014-09-01 Additive Attention) -->
           <section id="mechanism-stream" class="mechanisms-stream" aria-label="Chronological Mechanism Cards">
+            <div class="stream-section-header">
+              <h2>Chronological Progression of Attention Mechanisms</h2>
+              <p class="text-muted">
+                Each mechanism below responded to a concrete limitation of what came before.
+                Sorted strictly by verified public appearance date (2014 &ndash; 2026).
+              </p>
+            </div>
             ${mechanisms.map((m) => renderMechanismCard(m, mechanisms)).join('')}
           </section>
 
@@ -170,6 +236,8 @@ function renderApp() {
             <p class="text-sm text-muted">All dates, numbers, formulas, and paper citations verified against primary sources on October 14, 2026.</p>
           </div>
           <div class="footer-links font-mono">
+            <a href="./apple.html" style="color: var(--accent-cyan); font-weight: 600;"> Switch to Apple Design Edition</a>
+            &bull;
             <a href="https://github.com/thinkTinkerGreen/attention_timeline" target="_blank" rel="noopener noreferrer">GitHub Repo</a>
             &bull;
             <a href="./docs/verification-log.md" target="_blank">Verification Log</a>
@@ -215,27 +283,8 @@ function attachEventListeners() {
     });
   }
 
-  // Tag Filtering
-  const filterChips = document.querySelectorAll('.filter-chip');
-  filterChips.forEach((chip) => {
-    chip.addEventListener('click', (e) => {
-      const target = e.currentTarget as HTMLElement;
-      const tag = target.getAttribute('data-tag') || 'all';
-
-      filterChips.forEach((c) => c.classList.remove('active'));
-      target.classList.add('active');
-
-      const cards = document.querySelectorAll('.mechanism-card');
-      cards.forEach((card) => {
-        const cardTags = (card.getAttribute('data-tags') || '').split(' ');
-        if (tag === 'all' || cardTags.includes(tag)) {
-          (card as HTMLElement).style.display = 'block';
-        } else {
-          (card as HTMLElement).style.display = 'none';
-        }
-      });
-    });
-  });
+  // Tag Filtering Implementation (Issue 3 Fix)
+  initTagFiltering();
 
   // KV Cache Calculator Listeners
   initCalculatorListeners();
@@ -248,6 +297,80 @@ function attachEventListeners() {
 
   // ScrollSpy to update Sticky Nav Rail & Persistent Cost Ledger
   initScrollSpy();
+}
+
+function initTagFiltering() {
+  const filterChips = document.querySelectorAll('.filter-chip');
+  const banner = document.getElementById('filter-status-banner');
+  const bannerText = document.getElementById('filter-banner-text');
+  const clearBtn = document.getElementById('btn-clear-filter');
+  const railHeader = document.getElementById('rail-chronology-header');
+
+  function applyTagFilter(tag: string, scrollToResults = false) {
+    // Update chip buttons
+    filterChips.forEach((c) => {
+      if (c.getAttribute('data-tag') === tag) {
+        c.classList.add('active');
+      } else {
+        c.classList.remove('active');
+      }
+    });
+
+    const cards = document.querySelectorAll('.mechanism-card');
+    const railItems = document.querySelectorAll('.timeline-nav-item[data-mech-nav]');
+    let matchCount = 0;
+
+    cards.forEach((card) => {
+      const cardEl = card as HTMLElement;
+      const cardTags = (cardEl.getAttribute('data-tags') || '').split(' ');
+      if (tag === 'all' || cardTags.includes(tag)) {
+        cardEl.style.display = 'block';
+        matchCount++;
+      } else {
+        cardEl.style.display = 'none';
+      }
+    });
+
+    // Also filter the sidebar navigation rail
+    railItems.forEach((item) => {
+      const itemEl = item as HTMLElement;
+      const itemTags = (itemEl.getAttribute('data-tags') || '').split(' ');
+      if (tag === 'all' || itemTags.includes(tag)) {
+        itemEl.style.display = 'block';
+      } else {
+        itemEl.style.display = 'none';
+      }
+    });
+
+    // Update banner
+    if (banner && bannerText) {
+      if (tag === 'all') {
+        banner.style.display = 'none';
+        if (railHeader) railHeader.textContent = 'CHRONOLOGY (2014 – 2026)';
+      } else {
+        banner.style.display = 'flex';
+        bannerText.innerHTML = `Filter Active: Showing <strong>${matchCount}</strong> of ${mechanisms.length} mechanisms related to <code>#${tag}</code>`;
+        if (railHeader) railHeader.textContent = `MATCHING #${tag.toUpperCase()} (${matchCount})`;
+
+        if (scrollToResults) {
+          const match = document.querySelector('.mechanism-card[style*="display: block"]') as HTMLElement | null;
+          match?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    }
+  }
+
+  filterChips.forEach((chip) => {
+    chip.addEventListener('click', (e) => {
+      const target = e.currentTarget as HTMLElement;
+      const tag = target.getAttribute('data-tag') || 'all';
+      applyTagFilter(tag, true);
+    });
+  });
+
+  clearBtn?.addEventListener('click', () => {
+    applyTagFilter('all', false);
+  });
 }
 
 function updateHeroDisplay() {

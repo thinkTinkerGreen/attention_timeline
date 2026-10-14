@@ -1,18 +1,25 @@
 # How Does Attention Work Now? (2014 – 2026)
 ### A Chronological, Honest, and Interactive Explainer of Attention Mechanisms
 
-[![Live App on Netlify](https://img.shields.io/badge/Netlify-Live%20Deploy-00C7B7?style=flat&logo=netlify)](https://marvelous-puffpuff-ae91a2.netlify.app)
+[![Live App on Netlify](https://img.shields.io/badge/Netlify-Live%20Deploy-00C7B7?style=flat&logo=netlify)](https://shiny-licorice-6edd7b.netlify.app)
 [![Tests Passing](https://img.shields.io/badge/Vitest%20%26%20Pytest-Passing%20(22%2F22)-brightgreen)](https://github.com/thinkTinkerGreen/attention_timeline)
 [![Primary Sources](https://img.shields.io/badge/Verification-30%2F30%20Verified-blue)](./docs/verification-log.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 ---
 
-## 🌐 Live URLs & Deployment
+## 🌐 Live URLs & Deployment Editions
 
-* **Live Hosted Web App:** [https://marvelous-puffpuff-ae91a2.netlify.app](https://marvelous-puffpuff-ae91a2.netlify.app)
-  * *Deployment Password:* `My-Drop-Site` (set automatically for anonymous drop deploys)
-  * *Claim Your Site on Netlify:* [Claim Site Link](https://app.netlify.com/drop/marvelous-puffpuff-ae91a2#drop_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTE5OTY1NDUsImV4cCI6MTc5MjAwMDE0NSwiaXNzIjoiTmV0bGlmeSIsInNlc3Npb25faWQiOiI1YzNiNjRiZC1kNzdmLTQ0OTktYjI1Yi1mNDBjNDllMzRiY2UifQ.Yt1iVYP9tkHWBdRlRkI8LEGxxx5ZXsWGkVhkU5jUhi8) *(claim within 60 minutes to attach to your personal Netlify dashboard and unlock password restrictions)*
+The project provides **two distinct UI presentations** of the exact same verified research dataset, allowing direct visual and pedagogical comparison:
+
+1. **Classic Research View:** [https://shiny-licorice-6edd7b.netlify.app](https://shiny-licorice-6edd7b.netlify.app)
+   * Technical workstation layout with sticky navigation rail, persistent live cost ledger, and deep ML diagnostics.
+2. **Apple Design Edition:** [https://shiny-licorice-6edd7b.netlify.app/apple.html](https://shiny-licorice-6edd7b.netlify.app/apple.html)
+   * Conforms to **Apple.com Human Interface Guidelines & product showcase standards**: SF Pro typography, frosted glass vibrancy, Apple segmented controls, and minimalist bento grid storytelling.
+   * Both editions feature an instant 1-click **View Switcher** in the header.
+
+* **Default Password:** `My-Drop-Site` *(assigned by Netlify for anonymous drop deploys)*
+* **Claim Your Site on Netlify:** [Claim Site Link](https://app.netlify.com/drop/shiny-licorice-6edd7b#drop_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTIwMDY4ODYsImV4cCI6MTc5MjAxMDQ4NiwiaXNzIjoiTmV0bGlmeSIsInNlc3Npb25faWQiOiI4OTg5MWYwNC0xZDg5LTRhNjEtYTg4YS0yYzQyNjVhNjRkMzcifQ.6aNY9zWfH4Nh3xVx0-g2kBr4vE63IgXkyXJusZvaXPo) *(claim within 60 minutes to attach to your account and unlock password restrictions)*
 * **GitHub Repository:** [https://github.com/thinkTinkerGreen/attention_timeline](https://github.com/thinkTinkerGreen/attention_timeline)
 
 ---
@@ -21,7 +28,7 @@
 
 This application is built for machine learning researchers, engineers, and students who want to understand the real engineering and mathematical progression of attention mechanisms across a decade of foundation models. 
 
-Standard attention is **not "bad"**: it solved the catastrophic information bottleneck of recurrent networks and unlocked massive GPU training parallelism. However, it generated three concrete costs:
+Standard attention is **not "bad"**: it solved the catastrophic information bottleneck of recurrent networks and unlocked massive GPU training parallelism. However, it generated four concrete costs:
 1. **$O(N^2 d)$ prefill compute scaling**
 2. **$O(N \cdot L \cdot H_{kv} \cdot d_h)$ linear KV-cache memory growth during autoregressive decoding**
 3. **Permutation invariance (no built-in concept of token order)**
@@ -44,6 +51,7 @@ This repository provides **both** a production-grade interactive static web fron
   * Attention Sinks & Sliding Window 2D token eviction heatmap.
   * Recurrent Associative Recall experiment (Linear Attention collision vs. Delta Rule error-correcting overwrite).
 * **Workload Decision Lens:** Concrete guidance for 2K-token consumer chatbots, 128K-token legal document QA, and 1M-token autonomous coding agents.
+* **Apple Design Edition (`apple.html`):** Alternative presentation conforming to Apple.com UI standards.
 * **Static-First & Accessible:** Makes full sense with JavaScript disabled; zero external font or script runtime bottlenecks; responsive on mobile and desktop.
 
 ### 2. Python Suite (`python/` & `tests/`)
@@ -63,7 +71,7 @@ As required by the Truth Protocol:
 
 ## ⏱️ Master Chronology Table (2014 – 2026)
 
-All 30 entries below are verified against primary sources opened on **October 14, 2026**:
+All 30 entries below are verified against primary sources:
 
 | First Appearance | Mechanism | Primary Event / Source | Venue / Adoption | Status |
 |:---|:---|:---|:---|:---|
@@ -133,7 +141,7 @@ npm run dev
 # Run TypeScript + Vitest data and numerical tests
 npm test
 
-# Build production bundle
+# Build production bundle (both Classic and Apple editions)
 npm run build
 ```
 
