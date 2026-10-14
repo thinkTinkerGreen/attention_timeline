@@ -1,0 +1,1502 @@
+[
+  {
+    "id": "additive",
+    "name": "Additive Attention (Bahdanau Attention)",
+    "first_appearance": {
+      "date": "2014-09-01",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/1409.0473"
+    },
+    "other_dates": [
+      {
+        "label": "peer-reviewed",
+        "date": "2015-05-07",
+        "url": "https://iclr.cc/archive/www/doku.php%3Fid=iclr2015:accepted-main.html"
+      }
+    ],
+    "authors_org": "Dzmitry Bahdanau, Kyunghyun Cho, Yoshua Bengio (Jacobs University Bremen, Universite de Montreal)",
+    "responds_to": [],
+    "pressure": "Fixed-size RNN context vectors created an information bottleneck: encoder-decoder RNNs degraded severely on sentences longer than 20 words, compressing varying-length source sentences into a single static vector.",
+    "mechanism": "Computes alignment scores using a learned single-hidden-layer feed-forward network: e_{ij} = v_a^T tanh(W_a s_{i-1} + U_a h_j), followed by softmax normalization to dynamically weight encoder annotations.",
+    "what_it_buys": [
+      "Eliminates the fixed-size context vector bottleneck in sequence-to-sequence translation",
+      "Enables dynamic, soft alignment between decoder step and any input token",
+      "Maintained translation BLEU score across 50+ token sentences where standard RNNs collapsed"
+    ],
+    "what_it_gives_up": [
+      "Expensive compute: requires evaluating an MLP feed-forward layer for every query-key pair (no high-throughput matrix multiplication)",
+      "Strictly sequential RNN execution prevents GPU parallelization across time steps",
+      "Compute scales as O(T_x * T_y * d_hidden) with slow un-coalesced memory access"
+    ],
+    "choose_when": [
+      "Historical sequence-to-sequence RNN baselines",
+      "Small microcontroller recurrent networks where matrix-vector operations are stream-pipelined"
+    ],
+    "avoid_when": [
+      "Any modern transformer deployment requiring parallel training and tensor core acceleration"
+    ],
+    "next_pressure": ["standard-mha"],
+    "tags": ["prior-art", "compute"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:1409.0473v1 submitted 1 Sep 2014; ICLR 2015 oral.",
+    "figure": "additive-fig",
+    "metrics": {
+      "compute_prefill": "O(N * M * d)",
+      "kv_cache_per_token": "O(d) hidden recurrent",
+      "long_range_exactness": "Exact soft alignment within recurrent sequence",
+      "hardware_friendliness": "Low (MLP tanh per token pair, no GEMM)"
+    }
+  },
+  {
+    "id": "convs2s-learned-pos",
+    "name": "Learned Absolute Position Embeddings (ConvS2S)",
+    "first_appearance": {
+      "date": "2017-05-08",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/1705.03122"
+    },
+    "other_dates": [
+      {
+        "label": "peer-reviewed",
+        "date": "2017-08-06",
+        "url": "https://proceedings.mlr.press/v70/gehring17a.html"
+      },
+      {
+        "label": "evaluated in Transformer",
+        "date": "2017-06-12",
+        "url": "https://arxiv.org/abs/1706.03762"
+      }
+    ],
+    "authors_org": "Jonas Gehring, Michael Auli, David Grangier, Denis Yarats, Yann N. Dauphin (Facebook AI Research)",
+    "responds_to": ["additive"],
+    "pressure": "Recurrent models encoded token position implicitly via recurrence order (step t follows t-1), but convolutional and fully parallel architectures treat inputs as unordered bags of vectors without explicit positional signals.",
+    "mechanism": "Allocates a learned parameter matrix P in R^{L_max x d}. The representation for token at index i is constructed by direct elementwise addition: x_i = e_i + p_i.",
+    "what_it_buys": [
+      "Provides explicit positional awareness to non-recurrent parallel models",
+      "Parameters adapt directly to dataset positional statistics via standard backpropagation",
+      "Zero extra inference runtime overhead beyond a table lookup and vector addition"
+    ],
+    "what_it_gives_up": [
+      "Hard maximum sequence length ceiling L_max: cannot process a single token at index L_max + 1 without uninitialized weights",
+      "Zero extrapolation capability: positions unseen during training have uncalibrated or undefined embeddings",
+      "Adds L_max x d parameters to the model parameter budget"
+    ],
+    "choose_when": [
+      "Strictly fixed-length classification or generation tasks (e.g. BERT with 512 tokens, original GPT with 1024 tokens)",
+      "Workloads where sequence lengths are known a priori and never exceeded"
+    ],
+    "avoid_when": [
+      "Long-context generation, streaming inference, or tasks requiring length extrapolation beyond training horizon"
+    ],
+    "next_pressure": ["sinusoidal-pos", "relative-shaw"],
+    "tags": ["position"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:1705.03122v1 (8 May 2017); ICML 2017 proceedings. Tested alongside sinusoidal in Vaswani et al. (Table 3, row E).",
+    "figure": "learned-pos-fig",
+    "metrics": {
+      "compute_prefill": "O(1) addition",
+      "kv_cache_per_token": "None (absorbed in input)",
+      "long_range_exactness": "Bounded to L_max; fails at L_max+1",
+      "hardware_friendliness": "High (simple embedding lookup)"
+    }
+  },
+  {
+    "id": "standard-mha",
+    "name": "Scaled Dot-Product & Multi-Head Attention",
+    "first_appearance": {
+      "date": "2017-06-12",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/1706.03762"
+    },
+    "other_dates": [
+      {
+        "label": "peer-reviewed",
+        "date": "2017-12-04",
+        "url": "https://proceedings.neurips.cc/paper/2017/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html"
+      }
+    ],
+    "authors_org": "Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Lukasz Kaiser, Illia Polosukhin (Google Brain, Google Research, University of Toronto)",
+    "responds_to": ["additive"],
+    "pressure": "Recurrent sequence models could not parallelize across time during training (O(N) sequential steps). Additive attention required an MLP per token pair. Dot product was fast, but for large head dimensions d_k, dot products grew large, pushing softmax into regions with vanishingly small gradients.",
+    "mechanism": "Projects input into Queries, Keys, and Values. Computes Attention(Q, K, V) = softmax((Q K^T) / sqrt(d_k) + M) V. Scaling by 1/sqrt(d_k) counteracts variance growth of dot products under zero-mean unit-variance components.",
+    "what_it_buys": [
+      "Replaces sequential recurrence with highly parallelizable matrix multiplications (BLAS GEMM)",
+      "Global receptive field: every token attends directly to all previous tokens in a single layer (O(1) path length vs O(N) in RNNs)",
+      "Multi-head mechanism allows model to jointly attend to information from different representation subspaces"
+    ],
+    "what_it_gives_up": [
+      "Quadratic compute complexity O(N^2 * d) during prefill: 100K tokens takes 10,000x the FLOPs of 1K tokens",
+      "Quadratic activation memory O(N^2) for attention score matrix unless tiled (FlashAttention)",
+      "Linear growth of KV cache per decode step: 2 * layers * heads * d_head bytes per token stored forever in GPU memory",
+      "No inherent sense of token order without separate position encodings"
+    ],
+    "choose_when": [
+      "Short-to-medium sequence lengths (<4K tokens) where exact dense retrieval is paramount",
+      "Batch training on modern GPU/TPU clusters where dense tensor cores deliver peak utilization"
+    ],
+    "avoid_when": [
+      "Extreme sequence lengths (>32K tokens) without FlashAttention tiling, memory-constrained inference, or edge hardware"
+    ],
+    "next_pressure": ["mqa", "sparse-transformer", "flash-attention"],
+    "tags": ["compute", "decode-memory"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:1706.03762v1 submitted 12 June 2017; NeurIPS 2017 oral.",
+    "figure": "standard-mha-fig",
+    "metrics": {
+      "compute_prefill": "O(N^2 * d)",
+      "kv_cache_per_token": "2 * layers * n_heads * d_head * sizeof(fp16) = 2 * 32 * 32 * 128 * 2 = 524,288 B/token (0.5 MB/token on 32L-32H-128D)",
+      "long_range_exactness": "Exact global pairwise attention",
+      "hardware_friendliness": "High (dense GEMMs)"
+    }
+  },
+  {
+    "id": "sinusoidal-pos",
+    "name": "Sinusoidal Positional Encoding",
+    "first_appearance": {
+      "date": "2017-06-12",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/1706.03762"
+    },
+    "other_dates": [
+      {
+        "label": "peer-reviewed",
+        "date": "2017-12-04",
+        "url": "https://proceedings.neurips.cc/paper/2017/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html"
+      }
+    ],
+    "authors_org": "Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit et al. (Google Brain)",
+    "responds_to": ["convs2s-learned-pos"],
+    "pressure": "Learned absolute position embeddings cannot extrapolate past the maximum length seen in training, and consume parameter memory.",
+    "mechanism": "Deterministic geometric frequencies: PE_{(pos, 2i)} = sin(pos / 10000^{2i/d}) and PE_{(pos, 2i+1)} = cos(pos / 10000^{2i/d}). For any fixed offset k, PE_{pos+k} can be represented as a linear function of PE_{pos}.",
+    "what_it_buys": [
+      "Zero trainable parameters added to model",
+      "Theoretically defined for arbitrary sequence lengths without resizing parameter tensors",
+      "Linear transformability enables the model to learn relative position attention by attending to offsets"
+    ],
+    "what_it_gives_up": [
+      "Additive corruption: adding PE directly to word embeddings x + PE alters vector norms and corrupts semantic space",
+      "Empirical length extrapolation fails: in practice, neural networks do not extrapolate to test sequences longer than training data without degradation",
+      "Absolute coordinates don't directly preserve relative shift invariance in inner product attention scores"
+    ],
+    "choose_when": [
+      "Lightweight non-autoregressive models, vanilla academic baselines, audio/spectrogram encoders"
+    ],
+    "avoid_when": [
+      "Modern frontier autoregressive LLMs where length generalization and relative token distance are critical"
+    ],
+    "next_pressure": ["relative-shaw", "rope"],
+    "tags": ["position"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:1706.03762v1, Section 3.5. Proposed as parameter-free extrapolation hypothesis.",
+    "figure": "sinusoidal-fig",
+    "metrics": {
+      "compute_prefill": "O(d) deterministic trigonometric lookup",
+      "kv_cache_per_token": "None",
+      "long_range_exactness": "Degrades severely past training length in practice",
+      "hardware_friendliness": "High"
+    }
+  },
+  {
+    "id": "relative-shaw",
+    "name": "Relative Position Representations (Shaw et al.)",
+    "first_appearance": {
+      "date": "2018-03-06",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/1803.02155"
+    },
+    "other_dates": [
+      {
+        "label": "peer-reviewed",
+        "date": "2018-06-01",
+        "url": "https://aclanthology.org/N18-2074/"
+      }
+    ],
+    "authors_org": "Peter Shaw, Jakob Uszkoreit, Ashish Vaswani (Google Brain)",
+    "responds_to": ["sinusoidal-pos", "convs2s-learned-pos"],
+    "pressure": "Language syntax and semantics depend on relative distance between words (e.g. subject-verb agreement 3 tokens apart), not whether a phrase appears at absolute position 42 or 542.",
+    "mechanism": "Replaces absolute input embeddings with relation vectors added directly into attention logits and value aggregation: e_{ij} = (x_i W^Q (x_j W^K + a_{ij}^K)^T) / sqrt(d_z), with clipped maximum relative distance k: a_{ij}^K = w_{clip(j - i, -k, k)}.",
+    "what_it_buys": [
+      "True shift invariance: attention scores depend on offset (i - j) rather than absolute coordinates",
+      "Clipping to max distance k enables models to generalize to unseen sequence lengths without retraining",
+      "Consistent 1.3 BLEU improvement over sinusoidal baseline on WMT 2014 En-De"
+    ],
+    "what_it_gives_up": [
+      "Breaks standard matrix multiplication: computing Q * (a_{ij}^K)^T requires custom tensor indexing and un-coalesced memory reads",
+      "Cannot be fused into optimized dense GEMMs (incompatible with later FlashAttention kernels)",
+      "Cannot distinguish relative distances beyond the clipping boundary k"
+    ],
+    "choose_when": [
+      "Syntactic parsing, graph-to-sequence transformers, or tasks requiring strict local translation invariance"
+    ],
+    "avoid_when": [
+      "Hardware-accelerated transformer backbones requiring fused FlashAttention kernels"
+    ],
+    "next_pressure": ["rope", "alibi"],
+    "tags": ["position"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:1803.02155v1 (6 Mar 2018); NAACL-HLT 2018.",
+    "figure": "relative-shaw-fig",
+    "metrics": {
+      "compute_prefill": "O(N^2 * d) + O(N^2 * k) tensor gather overhead",
+      "kv_cache_per_token": "Requires storing or gathering relative bias per head",
+      "long_range_exactness": "Truncates at relative distance k",
+      "hardware_friendliness": "Poor (breaks standard GEMM fusion)"
+    }
+  },
+  {
+    "id": "sparse-transformer",
+    "name": "Sparse Transformer (Fixed Sparse Patterns)",
+    "first_appearance": {
+      "date": "2019-04-23",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/1904.10509"
+    },
+    "other_dates": [
+      {
+        "label": "blog post",
+        "date": "2019-04-23",
+        "url": "https://openai.com/index/sparse-transformer/"
+      }
+    ],
+    "authors_org": "Rewon Child, Scott Gray, Alec Radford, Ilya Sutskever (OpenAI)",
+    "responds_to": ["standard-mha"],
+    "pressure": "Standard attention's O(N^2) compute and memory made scaling context beyond 2,048 tokens impossible on 2019 GPUs (e.g. 16GB V100s). Images, audio, and long texts were intractable.",
+    "mechanism": "Factorizes dense N x N attention matrix into p separate sparse attention patterns (strided and local window). Each token attends only to a subset of indices S_i such that |S_i| proportional to sqrt(N), allowing full receptive field across p layers.",
+    "what_it_buys": [
+      "Reduces attention compute and activation memory from O(N^2) to O(N * sqrt(N))",
+      "Enabled first demonstration of transformers modeling raw audio waveforms and images up to 16,384 tokens",
+      "Retained global propagation across sequence layers via compositional strided connections"
+    ],
+    "what_it_gives_up": [
+      "Rigid, static sparsity patterns: cannot dynamically route attention to arbitrary distant tokens based on semantic relevance",
+      "Requires custom block-sparse GPU kernels; standard cuBLAS dense routines ran slower on sparse patterns than dense operations",
+      "Multi-hop information propagation requires deep networks: single-layer direct attention between distant tokens is severed"
+    ],
+    "choose_when": [
+      "Structured periodic data (images with row/column layout, regular audio waveforms) with fixed stride lengths"
+    ],
+    "avoid_when": [
+      "General natural language tasks requiring unpredictable, direct long-range associative lookup",
+      "Modern production serving where custom kernel maintenance introduces engineering fragility"
+    ],
+    "next_pressure": ["sliding-window-longformer", "nsa"],
+    "tags": ["sparsity", "compute"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:1904.10509v1 (23 Apr 2019); OpenAI blog release 23 Apr 2019.",
+    "figure": "sparse-transformer-fig",
+    "metrics": {
+      "compute_prefill": "O(N * sqrt(N) * d)",
+      "kv_cache_per_token": "Unchanged in decoding (still stores full KV for strided steps)",
+      "long_range_exactness": "Approximate / multi-hop via strided factorization",
+      "hardware_friendliness": "Moderate (requires custom block-sparse kernels)"
+    }
+  },
+  {
+    "id": "mqa",
+    "name": "Multi-Query Attention (MQA)",
+    "first_appearance": {
+      "date": "2019-11-06",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/1911.02150"
+    },
+    "other_dates": [
+      {
+        "label": "adopted in PaLM",
+        "date": "2022-04-05",
+        "url": "https://arxiv.org/abs/2204.02311"
+      }
+    ],
+    "authors_org": "Noam Shazeer (Google Brain)",
+    "responds_to": ["standard-mha"],
+    "pressure": "Autoregressive decoding is memory-bandwidth bound: at every generated token, the GPU must stream the entire KV cache from high-bandwidth memory (HBM) to on-chip SRAM just to compute dot products with a single query token. On multi-head attention, KV cache consumes 512 KB per token per sequence, choking batch size.",
+    "mechanism": "Collapses all key and value heads into a single shared key head and single shared value head across all query heads: Q in R^{n_q x d_k}, K in R^{1 x d_k}, V in R^{1 x d_v}.",
+    "what_it_buys": [
+      "Shrinks KV cache memory and memory bandwidth traffic by a factor of n_heads (e.g. 32x or 64x reduction)",
+      "Dramatically increases serving throughput and maximum batch size (up to 10-100x higher decoding throughput)",
+      "Reduces 32-layer 32-head fp16 KV cache from 524 KB/token to 16 KB/token"
+    ],
+    "what_it_gives_up": [
+      "Capacity loss: every query head must attend over identical key-value subspaces, degrading fine-grained multi-perspective retrieval",
+      "Quality degradation: training from scratch can suffer a noticeable drop in perplexity compared to MHA on smaller models",
+      "Checkpoint incompatibility: cannot directly convert existing MHA model checkpoints without quality degradation or uptraining",
+      "Does NOT reduce prefill compute: prefill FLOPs remain O(N^2 * d)"
+    ],
+    "choose_when": [
+      "Ultra-high-throughput, latency-critical inference serving with massive concurrent batch sizes (e.g. search query auto-complete)"
+    ],
+    "avoid_when": [
+      "Complex reasoning, needle-in-haystack tasks, or smaller models where head capacity loss hurts accuracy"
+    ],
+    "next_pressure": ["gqa", "mla"],
+    "tags": ["decode-memory"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:1911.02150v1 submitted 6 Nov 2019. 'Fast Transformer Decoding: One Write-Head is All You Need'.",
+    "figure": "mqa-fig",
+    "metrics": {
+      "compute_prefill": "O(N^2 * d) (prefill is unchanged)",
+      "kv_cache_per_token": "2 * layers * 1 * d_head * sizeof(fp16) = 2 * 32 * 1 * 128 * 2 = 16,384 B/token (32x smaller than MHA)",
+      "long_range_exactness": "Exact global attention over a single shared subspace",
+      "hardware_friendliness": "Very High (broadcast memory reads across query heads)"
+    }
+  },
+  {
+    "id": "explicit-topk",
+    "name": "Explicit Sparse / Top-k Attention",
+    "first_appearance": {
+      "date": "2019-12-25",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/1912.11637"
+    },
+    "other_dates": [],
+    "authors_org": "Guangxiang Zhao, Junyang Lin, Zhiyuan Zhang, Xuancheng Ren, Qi Su, Xu Sun (Peking University, Alibaba)",
+    "responds_to": ["standard-mha", "sparse-transformer"],
+    "pressure": "Standard attention softmax assigns small non-zero probability mass to irrelevant or noisy tokens, diluting attention focus and introducing quadratic FLOP overhead on uninformative context.",
+    "mechanism": "Applies an explicit top-k selection operator to attention logits before softmax: retains only the top-k highest scoring keys for each query, setting all other scores to -infinity: Attention(Q, K, V) = softmax(TopK((Q K^T) / sqrt(d_k), k)) V.",
+    "what_it_buys": [
+      "Forces concentrated focus on the most relevant tokens, pruning noise from irrelevant context",
+      "Reduces attention multiplication compute from O(N^2 * d) to O(N * k * d) once top-k indices are selected",
+      "Improves translation and text summarization quality by eliminating probability dispersion"
+    ],
+    "what_it_gives_up": [
+      "Still requires computing the full N x N query-key dot product score matrix just to identify the top-k elements!",
+      "Does NOT reduce KV cache footprint: all past tokens must still be kept in memory because any future query might select them",
+      "Top-k selection is non-differentiable with respect to indices, creating optimization instability during backpropagation",
+      "Hardware irregularity: non-contiguous memory gathering degrades GPU tensor core throughput"
+    ],
+    "choose_when": [
+      "Noisy sequence filtering where concentrating probability mass improves accuracy"
+    ],
+    "avoid_when": [
+      "Attempting to reduce GPU memory footprint (see Trap T-TOPK-MEM)",
+      "High-throughput inference where index sorting overhead exceeds dense GEMM speed"
+    ],
+    "next_pressure": ["nsa", "dsa"],
+    "tags": ["sparsity", "compute"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:1912.11637v1 (25 Dec 2019). 'Explicit Sparse Transformer: Concentrated Attention Through Explicit Selection'.",
+    "figure": "explicit-topk-fig",
+    "metrics": {
+      "compute_prefill": "O(N^2 * d) for scoring + O(N * k * d) for V aggregation",
+      "kv_cache_per_token": "Full KV cache retained (same as MHA)",
+      "long_range_exactness": "Truncated to top-k elements",
+      "hardware_friendliness": "Low (scatter/gather indexing and sorting)"
+    }
+  },
+  {
+    "id": "sliding-window-longformer",
+    "name": "Sliding-Window Attention & Global Tokens (Longformer)",
+    "first_appearance": {
+      "date": "2020-04-10",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/2004.05150"
+    },
+    "other_dates": [
+      {
+        "label": "decoder return (Mistral 7B)",
+        "date": "2023-09-27",
+        "url": "https://arxiv.org/abs/2310.06825"
+      }
+    ],
+    "authors_org": "Iz Beltagy, Matthew E. Peters, Arman Cohan (Allen Institute for Artificial Intelligence)",
+    "responds_to": ["standard-mha", "sparse-transformer"],
+    "pressure": "Dense quadratic attention hit memory limits at 2K-4K tokens, while strided sparse patterns failed to preserve dense local grammatical dependencies.",
+    "mechanism": "Combines a local sliding window of fixed size w (where each token attends to w/2 tokens to the left and right) with task-specific global attention on designated tokens (e.g. [CLS] or special question tokens).",
+    "what_it_buys": [
+      "Linear compute and memory scaling O(N * w) with sequence length N",
+      "Receptive field grows with depth: stacked L layers provide effective receptive field of L * w tokens",
+      "Scaled context window to 32,768 tokens in 2020 without OOM errors"
+    ],
+    "what_it_gives_up": [
+      "Loss of exact direct global retrieval: a token at layer 1 cannot directly attend to a token outside window w",
+      "Multi-hop dilution: information traversing L layers through local windows suffers severe signal decay and semantic blurring",
+      "In autoregressive generation, evicting tokens outside the window breaks generation stability unless attention sinks are preserved (see StreamingLLM)"
+    ],
+    "choose_when": [
+      "Document classification, long-document summarization with clear local syntax structure, and hybrid modern backbones (e.g. DeepSeek-V4 CSA local branch)"
+    ],
+    "avoid_when": [
+      "Long-range needle-in-a-haystack tasks requiring direct, single-hop token association across 100K+ tokens"
+    ],
+    "next_pressure": ["attention-sinks", "csa-deepseek-v4"],
+    "tags": ["sparsity", "compute", "long-context"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:2004.05150v1 (10 Apr 2020). Later revived in decoder LLMs by Mistral (Sept 2023).",
+    "figure": "sliding-window-fig",
+    "metrics": {
+      "compute_prefill": "O(N * w * d)",
+      "kv_cache_per_token": "Bounded by window size w * layers * heads * d_head * sizeof(fp16)",
+      "long_range_exactness": "Local only within window w; multi-hop across layers",
+      "hardware_friendliness": "High (banded diagonal GEMM)"
+    }
+  },
+  {
+    "id": "linear-attention",
+    "name": "Linear Attention ('Transformers are RNNs')",
+    "first_appearance": {
+      "date": "2020-06-29",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/2006.16236"
+    },
+    "other_dates": [
+      {
+        "label": "peer-reviewed",
+        "date": "2020-11-21",
+        "url": "https://proceedings.mlr.press/v119/katharopoulos20a.html"
+      }
+    ],
+    "authors_org": "Angelos Katharopoulos, Apoorv Vyas, Nikolaos Pappas, Francois Fleuret (Idiap Research Institute, EPFL, University of Geneva)",
+    "responds_to": ["standard-mha"],
+    "pressure": "Standard attention couples query-key interactions inside a non-linear softmax: softmax(Q K^T) V prevents exploiting matrix associativity to compute (K^T V) first, forcing O(N^2) complexity and unbounded KV cache growth.",
+    "mechanism": "Replaces softmax with feature maps phi(x) = elu(x) + 1. By associative law of matrix multiplication: Attention(Q, K, V) = (phi(Q) phi(K)^T) V = phi(Q) (phi(K)^T V). In autoregressive form, maintained as recurrent state S_t = S_{t-1} + phi(k_t) v_t^T in R^{d_k x d_v}.",
+    "what_it_buys": [
+      "Linear compute complexity O(N * d^2) during training via parallel prefix sums",
+      "Constant O(1) memory and O(1) compute per token during autoregressive decoding (recurrent state S_t does not grow with context length)",
+      "Unifies Transformers and Recurrent Neural Networks mathematically"
+    ],
+    "what_it_gives_up": [
+      "Catastrophic forgetting / capacity bottleneck: state matrix S_t in R^{d x d} has fixed capacity; adding terms (k_t v_t^T) continually causes past associations to collide and overwrite",
+      "Fails associative recall (Needle-in-a-Haystack): cannot recall specific arbitrary token associations across long sequences",
+      "Degrades generation quality and in-context learning compared to softmax attention"
+    ],
+    "choose_when": [
+      "Extreme sequence lengths (e.g. 1M+ tokens) on edge hardware with strict O(1) RAM budgets where lossy memory is acceptable"
+    ],
+    "avoid_when": [
+      "Exact retrieval, multi-turn reasoning, or code generation requiring precise symbol lookups"
+    ],
+    "next_pressure": ["delta-rule-linear", "gated-deltanet"],
+    "tags": ["recurrent-state", "compute", "decode-memory"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:2006.16236v1 (29 Jun 2020); ICML 2020.",
+    "figure": "linear-attention-fig",
+    "metrics": {
+      "compute_prefill": "O(N * d^2)",
+      "kv_cache_per_token": "O(1) constant fixed state matrix S in R^{d x d} per layer (zero per-token cache growth)",
+      "long_range_exactness": "Lossy (fixed capacity state causes catastrophic collision)",
+      "hardware_friendliness": "High for parallel prefix scan; O(1) step for decode"
+    }
+  },
+  {
+    "id": "delta-rule-linear",
+    "name": "Delta Rule in Linear Attention (Fast Weight Programmers)",
+    "first_appearance": {
+      "date": "2021-02-22",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/2102.11174"
+    },
+    "other_dates": [
+      {
+        "label": "concept origin (Widrow-Hoff)",
+        "date": "1960-08-01",
+        "url": "https://web.stanford.edu/~widrow/papers/c1960adaptiveswitching.pdf"
+      },
+      {
+        "label": "parallelized DeltaNet",
+        "date": "2024-06-10",
+        "url": "https://arxiv.org/abs/2406.06484"
+      }
+    ],
+    "authors_org": "Imanol Schlag, Kazuki Irie, Jurgen Schmidhuber (IDSIA, USI, SUPSI)",
+    "responds_to": ["linear-attention"],
+    "pressure": "Linear attention's naive additive update S_t = S_{t-1} + k_t v_t^T blindly sums associations, causing memory collisions and catastrophic forgetting when identical or correlated keys appear repeatedly.",
+    "mechanism": "Applies the Widrow-Hoff Delta Rule (1960) to linear attention memory: predicts current value using prior state (S_{t-1} k_t), compares against target v_t, and updates state using the error delta: S_t = S_{t-1} - beta_t (S_{t-1} k_t - v_t) k_t^T = S_{t-1}(I - beta_t k_t k_t^T) + beta_t v_t k_t^T.",
+    "what_it_buys": [
+      "Actively erases conflicting prior memories before writing new values, resolving catastrophic memory interference",
+      "Dramatic boost in associative recall and synthetic retrieval benchmarks over plain linear attention",
+      "Retains O(1) state memory footprint per layer during autoregressive decoding"
+    ],
+    "what_it_gives_up": [
+      "Non-trivial to parallelize during training: the (I - beta_t k_t k_t^T) transition prevents simple associative prefix sums (required chunked Householder algorithms developed years later in 2024)",
+      "Still bounded by finite matrix capacity R^{d x d}: cannot achieve lossless retrieval on 1M token sequences",
+      "Slower training throughput than vanilla linear attention without specialized custom kernels"
+    ],
+    "choose_when": [
+      "Recurrent/linear attention backbones requiring high associative memory capacity and sharp key-value overwriting"
+    ],
+    "avoid_when": [
+      "Training environments lacking custom chunk-parallel DeltaNet Triton kernels"
+    ],
+    "next_pressure": ["parallel-deltanet", "gated-deltanet"],
+    "tags": ["recurrent-state", "compute"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:2102.11174v1 (22 Feb 2021); ICML 2021. 'Linear Transformers Are Secretly Fast Weight Programmers'. Widrow-Hoff cited from 1960.",
+    "figure": "delta-rule-fig",
+    "metrics": {
+      "compute_prefill": "O(N * d^2) with chunked parallel algorithm",
+      "kv_cache_per_token": "O(1) constant fixed state matrix S in R^{d x d}",
+      "long_range_exactness": "Bounded associative recall; significantly higher fidelity than naive linear",
+      "hardware_friendliness": "Requires chunk-wise Householder or parallel scan kernels"
+    }
+  },
+  {
+    "id": "rope",
+    "name": "Rotary Position Embedding (RoPE)",
+    "first_appearance": {
+      "date": "2021-04-20",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/2104.09864"
+    },
+    "other_dates": [
+      {
+        "label": "EleutherAI adoption (GPT-J)",
+        "date": "2021-06-04",
+        "url": "https://github.com/kingoflolz/mesh-transformer-jax"
+      },
+      {
+        "label": "LLaMA adoption",
+        "date": "2023-02-27",
+        "url": "https://arxiv.org/abs/2302.13971"
+      }
+    ],
+    "authors_org": "Jianlin Su, Yu Lu, Shengfeng Pan, Ahmed Murtadha, Bo Wen, Yunfeng Liu (Zhuiyi Technology)",
+    "responds_to": ["sinusoidal-pos", "relative-shaw"],
+    "pressure": "Sinusoidal encodings corrupted semantic vector spaces through additive operations. Relative position biases (Shaw et al.) broke matrix multiplication fusion, making them incompatible with high-speed GPU attention kernels.",
+    "mechanism": "Encodes position by multiplying Query and Key representations by an orthogonal block-diagonal 2D rotation matrix: R_{Theta, m}^d = diag(R_{theta_1, m}, ..., R_{theta_{d/2}, m}). The inner product becomes <R_m q, R_n k> = q^T R_{n-m} k, making attention scores depend purely on relative offset (m - n).",
+    "what_it_buys": [
+      "Combines absolute encoding computational simplicity (applied token-wise to Q and K) with relative position mathematical properties",
+      "Preserves vector norms: orthogonal rotation does not distort vector magnitudes",
+      "Natural decay of attention scores with increasing token distance",
+      "Became the undisputed global standard positional mechanism for modern LLMs (LLaMA, Mistral, Qwen, DeepSeek)"
+    ],
+    "what_it_gives_up": [
+      "Hard frequency boundary: high-frequency components rotate rapidly; positions beyond the trained context window encounter out-of-distribution rotation angles, causing catastrophic perplexity explosion",
+      "Incompatible with standard low-rank KV cache matrix absorption (see Trap T-MLA: MLA had to decouple RoPE into a separate vector)",
+      "Cannot extrapolate context length without scaling tricks (PI, NTK-aware, YaRN)"
+    ],
+    "choose_when": [
+      "Default positional architecture for modern autoregressive LLMs and multi-head attention backbones"
+    ],
+    "avoid_when": [
+      "Models requiring zero-shot context length doubling without fine-tuning or frequency interpolation"
+    ],
+    "next_pressure": ["position-interpolation", "ntk-aware", "mla", "drope"],
+    "tags": ["position"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:2104.09864v1 (20 Apr 2021). First mainstream adoption in GPT-J (June 2021), formalized in LLaMA (Feb 2023).",
+    "figure": "rope-fig",
+    "metrics": {
+      "compute_prefill": "O(d) complex multiplication / 2D rotation per token",
+      "kv_cache_per_token": "Rotated keys cached in KV cache (or separate decoupled RoPE vector in MLA)",
+      "long_range_exactness": "Exact within training context; explodes past trained horizon without scaling",
+      "hardware_friendliness": "High (elementwise kernel before GEMM)"
+    }
+  },
+  {
+    "id": "alibi",
+    "name": "Attention with Linear Biases (ALiBi)",
+    "first_appearance": {
+      "date": "2021-08-27",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/2108.12409"
+    },
+    "other_dates": [
+      {
+        "label": "peer-reviewed",
+        "date": "2022-04-25",
+        "url": "https://openreview.net/forum?id=R8sQPpGCv0"
+      },
+      {
+        "label": "adopted in MPT-7B",
+        "date": "2023-05-05",
+        "url": "https://www.mosaicml.com/blog/mpt-7b"
+      }
+    ],
+    "authors_org": "Ofir Press, Noah A. Smith, Mike Lewis (University of Washington, Meta AI)",
+    "responds_to": ["sinusoidal-pos", "rope"],
+    "pressure": "Existing positional encodings (sinusoidal, learned, RoPE) catastrophically failed when evaluated on sequences longer than their training length (e.g. trained on 2K tokens, failed at 4K tokens).",
+    "mechanism": "Completely removes positional embeddings from input words. Adds a static, non-learned linear penalty to attention logits proportional to token distance: softmax(q_i k_j^T - m * |i - j|), where m is a head-specific geometric slope (m = 2^{-8i/H}).",
+    "what_it_buys": [
+      "True length extrapolation: models trained on 1,024 tokens generalize to 2,048+ tokens with zero perplexity degradation",
+      "Zero positional parameters and zero training overhead",
+      "Faster pre-training throughput by enabling training on short sequences while deploying on long sequences"
+    ],
+    "what_it_gives_up": [
+      "Strict recency bias: enforces monotonically decreasing attention over distance, impairing the model's ability to learn arbitrary distant periodic or non-local dependencies",
+      "Incompatible with bidirectional full attention or masked autoencoders (designed strictly for causal autoregressive models)",
+      "Lacks the expressive rotational interaction of RoPE; largely superseded in frontier models by RoPE + NTK/YaRN interpolation"
+    ],
+    "choose_when": [
+      "Lightweight streaming models and scenarios requiring guaranteed stable length extrapolation with minimal tuning"
+    ],
+    "avoid_when": [
+      "Models requiring bidirectional attention, long-range periodic reasoning, or frontier reasoning parity with RoPE"
+    ],
+    "next_pressure": ["position-interpolation", "ntk-aware"],
+    "tags": ["position", "long-context"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:2108.12409v1 (27 Aug 2021). ICLR 2022 oral.",
+    "figure": "alibi-fig",
+    "metrics": {
+      "compute_prefill": "O(1) scalar bias added to attention logits",
+      "kv_cache_per_token": "None",
+      "long_range_exactness": "Monotonic linear decay penalty over distance",
+      "hardware_friendliness": "High (simple fused logit bias)"
+    }
+  },
+  {
+    "id": "flash-attention",
+    "name": "FlashAttention (IO-Aware Exact Attention)",
+    "first_appearance": {
+      "date": "2022-05-27",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/2205.14135"
+    },
+    "other_dates": [
+      {
+        "label": "FlashAttention-2",
+        "date": "2023-07-17",
+        "url": "https://arxiv.org/abs/2307.08691"
+      },
+      {
+        "label": "FlashAttention-3",
+        "date": "2024-07-10",
+        "url": "https://tridao.me/blog/2024/flash3/"
+      }
+    ],
+    "authors_org": "Tri Dao, Daniel Y. Fu, Stefano Ermon, Atri Rudra, Christopher Re (Stanford University, University at Buffalo)",
+    "responds_to": ["standard-mha"],
+    "pressure": "Standard attention implementations were memory-bound, not compute-bound: reading and writing the intermediate N x N attention score matrix to slow GPU High Bandwidth Memory (HBM) caused massive latency bottlenecks and O(N^2) memory overhead.",
+    "mechanism": "Computes exact attention without materializing the N x N score matrix in HBM. Tiles inputs into blocks that fit entirely inside ultrafast on-chip SRAM, utilizing an online softmax algorithm that incrementally rescales intermediate row maximums and normalizers: m_new = max(m_old, m_block), d_new = d_old * e^{m_old - m_new} + sum(e^{scores - m_new}).",
+    "what_it_buys": [
+      "Exact mathematical equivalence to standard scaled dot-product attention (no approximation, zero loss in accuracy)",
+      "2-4x wall-clock training speedup and up to 10-20x memory reduction by eliminating the intermediate N x N tensor",
+      "Allowed standard attention to remain dominant through 2022-2024, enabling context scaling from 2K to 32K+ without algorithmic changes"
+    ],
+    "what_it_gives_up": [
+      "Does NOT change the underlying O(N^2 * d) mathematical FLOP complexity: computing 1M tokens still requires 1 trillion FLOP operations",
+      "Highly hardware-specific: requires hand-tuned CUDA/Triton kernels adapted to specific GPU SRAM sizes, warp structures, and tensor core pipelines",
+      "Complex custom backward pass: must recompute attention matrices during backprop rather than caching them"
+    ],
+    "choose_when": [
+      "Universally mandatory default kernel for all modern dense attention operations on modern GPUs (A100, H100, B200)"
+    ],
+    "avoid_when": [
+      "Hardware targets lacking fast local on-chip SRAM or unsupported tensor architectures"
+    ],
+    "next_pressure": ["gqa", "mla", "nsa"],
+    "tags": ["compute", "hardware-acceleration"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:2205.14135v1 (27 May 2022); NeurIPS 2022. Note Trap T-FLASH: exact attention, not an approximation.",
+    "figure": "flash-attention-fig",
+    "metrics": {
+      "compute_prefill": "Exact O(N^2 * d) FLOPs, but with optimal IO memory traffic",
+      "kv_cache_per_token": "Standard KV cache (unaltered)",
+      "long_range_exactness": "100% exact numerical match with standard attention",
+      "hardware_friendliness": "Peak theoretical tensor core utilization on NVIDIA/AMD GPUs"
+    }
+  },
+  {
+    "id": "gqa",
+    "name": "Grouped-Query Attention (GQA)",
+    "first_appearance": {
+      "date": "2023-05-22",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/2305.13245"
+    },
+    "other_dates": [
+      {
+        "label": "LLaMA-2 70B adoption",
+        "date": "2023-07-18",
+        "url": "https://arxiv.org/abs/2307.09288"
+      }
+    ],
+    "authors_org": "Joshua Ainslie, James Lee-Thorp, Michiel de Jong, Yury Zemlyanskiy, Federico Lebron, Sumit Sanghai (Google Research)",
+    "responds_to": ["standard-mha", "mqa"],
+    "pressure": "MHA had unsustainable KV cache memory overhead at high concurrency, while MQA's single KV head caused unacceptable model quality and reasoning degradation on language tasks.",
+    "mechanism": "Interpolates between MHA and MQA: partitions query heads into G groups, with each group sharing a single Key and Value head. If G = n_heads, it reduces to MHA; if G = 1, it reduces to MQA. Standard industry practice is 8 KV heads for 32 or 64 query heads (4x-8x compression).",
+    "what_it_buys": [
+      "4x to 8x reduction in KV cache size and memory bandwidth compared to MHA",
+      "Recovers nearly 100% of MHA model quality and perplexity while delivering close to MQA decoding throughput",
+      "Can uptrain existing MHA checkpoints into GQA checkpoints with minimal training compute (5% of pre-training steps)",
+      "Standard default architecture for modern open-weights models (LLaMA-2/3, Mistral, Qwen2)"
+    ],
+    "what_it_gives_up": [
+      "Still requires linear KV cache growth per token: at 128K context, 8 KV heads on a 70B model still consumes gigabytes of GPU RAM per user stream",
+      "Does NOT reduce prefill compute: prefill remains O(N^2 * d)",
+      "Query heads within a group must still share the same key-value projection subspace"
+    ],
+    "choose_when": [
+      "Default architecture for general-purpose LLM pretraining and serving across cloud and edge devices"
+    ],
+    "avoid_when": [
+      "Extreme long-context deployments (>128K tokens) where even 8x compressed KV cache exhausts GPU HBM (see MLA and CSA)"
+    ],
+    "next_pressure": ["mla", "csa-deepseek-v4"],
+    "tags": ["decode-memory"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:2305.13245v1 (22 May 2023); EMNLP 2023. Validated interpolation proof: G=1 is MQA, G=H is MHA.",
+    "figure": "gqa-fig",
+    "metrics": {
+      "compute_prefill": "O(N^2 * d)",
+      "kv_cache_per_token": "2 * layers * n_kv_heads * d_head * sizeof(fp16) = 2 * 32 * 8 * 128 * 2 = 131,072 B/token (4x smaller than MHA)",
+      "long_range_exactness": "Exact attention over grouped subspace",
+      "hardware_friendliness": "Very High (native FlashAttention-2/3 support)"
+    }
+  },
+  {
+    "id": "nope",
+    "name": "NoPE (No Positional Encoding)",
+    "first_appearance": {
+      "date": "2023-05-31",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/2305.19466"
+    },
+    "other_dates": [
+      {
+        "label": "peer-reviewed",
+        "date": "2024-05-07",
+        "url": "https://openreview.net/forum?id=8s1dmUOHQf"
+      }
+    ],
+    "authors_org": "Amirhossein Kazemnejad, Insu Jang, Stephen Lu, Nicolas Le Roux (Mila, McGill University)",
+    "responds_to": ["rope", "alibi", "sinusoidal-pos"],
+    "pressure": "All explicit positional encodings (RoPE, ALiBi, sinusoidal) induce out-of-distribution artifacts and degradation when evaluating beyond the training context length.",
+    "mechanism": "Completely omits any explicit positional encodings or biases. Relies solely on causal masking in autoregressive transformers, which naturally breaks permutation symmetry: token i can attend to i tokens, while token j can attend to j tokens, allowing self-attention to infer relative positions implicitly.",
+    "what_it_buys": [
+      "Zero positional parameters, zero rotational compute overhead",
+      "Surprisingly robust length generalization on algorithmic and synthetic reasoning tasks",
+      "Proved theoretically that causal attention without positional encodings can represent full relative position information"
+    ],
+    "what_it_gives_up": [
+      "Slower convergence during pre-training: the model must spend initial parameter capacity learning to track sequence coordinates",
+      "Weak positional resolution in deep layers: without explicit coordinates, precise token order in long unstructured texts degrades",
+      "Does not directly allow existing pretrained RoPE models to generalize without dedicated fine-tuning (paved the way for DroPE)"
+    ],
+    "choose_when": [
+      "Algorithmic reasoning, formal language processing, and research into minimal inductive biases"
+    ],
+    "avoid_when": [
+      "Pretraining large frontier models from scratch where rapid convergence on web-scale text is economically vital"
+    ],
+    "next_pressure": ["drope"],
+    "tags": ["position", "long-context"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:2305.19466v1 (31 May 2023); NeurIPS 2023. Crucial missing link motivating DroPE.",
+    "figure": "nope-fig",
+    "metrics": {
+      "compute_prefill": "Zero extra compute",
+      "kv_cache_per_token": "Zero extra memory",
+      "long_range_exactness": "Implicit via causal attention mask",
+      "hardware_friendliness": "Peak (plain unmodified GEMM)"
+    }
+  },
+  {
+    "id": "position-interpolation",
+    "name": "Position Interpolation (PI)",
+    "first_appearance": {
+      "date": "2023-06-27",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/2306.15595"
+    },
+    "other_dates": [
+      {
+        "label": "community origin (kaiokendev)",
+        "date": "2023-06-20",
+        "url": "https://kaiokendev.github.io/context"
+      }
+    ],
+    "authors_org": "Shoubhik Chen, Sherman Wong, Liangjian Chen, Yuandong Tian (Meta AI)",
+    "responds_to": ["rope"],
+    "pressure": "Pretrained RoPE models collapsed when prompted past their training length L (e.g. 2K). Extrapolating RoPE to position m > L evaluates rotation vectors at unseen angles, causing attention scores to blow up.",
+    "mechanism": "Linearly downscales position coordinates by a factor s = L'/L before computing RoPE rotations: f'(x, m) = f(x, m / s) = f(x, m * L / L'). Instead of extrapolating rotation angles into uncharted territory, it interpolates all angles within the familiar [0, 2pi] range seen during training.",
+    "what_it_buys": [
+      "Extends context window (e.g. 2K to 32K tokens) with minimal fine-tuning (only ~1,000 steps)",
+      "Drastically stabilizes fine-tuning perplexity compared to direct extrapolation",
+      "Simple to implement: a one-line change to the RoPE positional index calculation"
+    ],
+    "what_it_gives_up": [
+      "Squeezes high-frequency components together: high-frequency dimensions encode local token ordering; scaling all frequencies uniformly degrades local grammatical resolution",
+      "Requires fine-tuning: cannot be used zero-shot without post-training calibration",
+      "Uniform scale factor s is suboptimal across disparate head frequencies"
+    ],
+    "choose_when": [
+      "Rapidly adapting an existing pretrained RoPE checkpoint to 4x-8x context length with limited fine-tuning compute"
+    ],
+    "avoid_when": [
+      "Zero-shot context extension without any fine-tuning data, or scaling beyond 16x context"
+    ],
+    "next_pressure": ["ntk-aware", "yarn"],
+    "tags": ["position", "long-context"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:2306.15595v1 (27 Jun 2023). Credit to community developer kaiokendev (20 June 2023) documented.",
+    "figure": "pi-fig",
+    "metrics": {
+      "compute_prefill": "O(1) scalar division on position index m",
+      "kv_cache_per_token": "Standard KV cache",
+      "long_range_exactness": "Interpolated rotation angles across all frequency bands",
+      "hardware_friendliness": "High"
+    }
+  },
+  {
+    "id": "ntk-aware",
+    "name": "NTK-Aware Scaled RoPE",
+    "first_appearance": {
+      "date": "2023-06-29",
+      "precision": "day",
+      "event": "Reddit Post",
+      "primary_url": "https://www.reddit.com/r/LocalLLaMA/comments/14lz7j5/ntkaware_scaled_rope_allows_llama_models_to_have/"
+    },
+    "other_dates": [
+      {
+        "label": "formalized in YaRN paper",
+        "date": "2023-08-31",
+        "url": "https://arxiv.org/abs/2309.00071"
+      }
+    ],
+    "authors_org": "bloc97 (Open-Source Community, r/LocalLLaMA)",
+    "responds_to": ["position-interpolation", "rope"],
+    "pressure": "Position Interpolation (PI) treated all RoPE frequencies equally. Scaling high-frequency dimensions ruined the model's ability to distinguish adjacent tokens (local grammar), while direct extrapolation ruined low frequencies. Furthermore, PI required fine-tuning and failed zero-shot.",
+    "mechanism": "Applies Neural Tangent Kernel (NTK) theory to RoPE: low-frequency dimensions (which encode long-range distance) are scaled heavily, while high-frequency dimensions (which encode local order) are left almost untouched. Mathematically achieved by scaling the base frequency: base' = base * s^{d / (d - 2)}.",
+    "what_it_buys": [
+      "Enables zero-shot context extension: extends 2K/4K models to 8K/16K without ANY fine-tuning!",
+      "Preserves high-frequency local positional resolution while stretching low-frequency global coordinates",
+      "Invented and distributed directly by an open-source practitioner (bloc97) on Reddit, rapidly adopted by HuggingFace, vLLM, and ExLlama"
+    ],
+    "what_it_gives_up": [
+      "Theoretical approximation: scaling base frequency is a heuristic that does not perfectly isolate frequency bands",
+      "Slight perplexity degradation on very long sequences without fine-tuning",
+      "Replaced by YaRN's cleaner piecewise band-split ('by parts') formulation"
+    ],
+    "choose_when": [
+      "Zero-shot runtime context extension of pretrained RoPE models without retraining budgets"
+    ],
+    "avoid_when": [
+      "Training frontier models from scratch where YaRN or native high-base pretraining is feasible"
+    ],
+    "next_pressure": ["yarn"],
+    "tags": ["position", "long-context"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Verified Reddit post id 14lz7j5 by bloc97 on r/LocalLLaMA submitted 29 June 2023. Note Trap T-NTK: this is a community post, not an arXiv paper.",
+    "figure": "ntk-aware-fig",
+    "metrics": {
+      "compute_prefill": "O(1) base frequency parameter change",
+      "kv_cache_per_token": "Standard KV cache",
+      "long_range_exactness": "Non-uniform frequency stretching",
+      "hardware_friendliness": "High (zero kernel modification)"
+    }
+  },
+  {
+    "id": "yarn",
+    "name": "YaRN (Yet another RoPE extensioN)",
+    "first_appearance": {
+      "date": "2023-08-31",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/2309.00071"
+    },
+    "other_dates": [
+      {
+        "label": "peer-reviewed",
+        "date": "2024-05-07",
+        "url": "https://openreview.net/forum?id=wHBbgHeksw"
+      }
+    ],
+    "authors_org": "Bowen Peng, Jeffrey Quesnelle, Honglu Fan, Enrico Shippole (Nous Research, EleutherAI)",
+    "responds_to": ["ntk-aware", "position-interpolation"],
+    "pressure": "NTK-aware scaling improved zero-shot context, but its uniform base modification introduced subtle wavelength distortions across intermediate frequencies, and attention distributions became overly entropic (flat) at 64K+ context lengths.",
+    "mechanism": "Divides RoPE dimensions into three distinct frequency bands: (1) high frequencies (wavelength < L) are NOT interpolated (scale = 1); (2) low frequencies (wavelength > s*L) are FULLY linearly interpolated (scale = s); (3) intermediate frequencies are smoothly ramped with a linear transition function gamma. Additionally introduces temperature scaling sqrt(t) on attention logits to counteract entropy dispersion.",
+    "what_it_buys": [
+      "Extends context windows up to 64K-128K tokens with 10x fewer fine-tuning tokens than PI",
+      "Attention temperature scaling prevents attention scores from flattening out at 100K tokens",
+      "Near-zero degradation on original short-context evaluations while mastering extreme context"
+    ],
+    "what_it_gives_up": [
+      "Requires tuning multiple hyperparameters: low/high wavelength thresholds (alpha, beta) and attention scale temperature factor",
+      "Does not solve the underlying O(N) KV cache memory footprint or O(N^2) compute cost during inference",
+      "Still bound to RoPE's fundamental limitation: decoupled representations needed for latent compression"
+    ],
+    "choose_when": [
+      "Scaling RoPE models to 32K-128K context windows during post-training fine-tuning"
+    ],
+    "avoid_when": [
+      "Constrained memory environments where KV cache storage is the primary bottleneck"
+    ],
+    "next_pressure": ["attention-sinks", "mla"],
+    "tags": ["position", "long-context"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:2309.00071v1 (31 Aug 2023); ICLR 2024.",
+    "figure": "yarn-fig",
+    "metrics": {
+      "compute_prefill": "Piecewise ramp function per frequency band + temperature logit scale",
+      "kv_cache_per_token": "Standard KV cache",
+      "long_range_exactness": "Tri-band frequency interpolation + entropy correction",
+      "hardware_friendliness": "High"
+    }
+  },
+  {
+    "id": "attention-sinks",
+    "name": "Attention Sinks (StreamingLLM)",
+    "first_appearance": {
+      "date": "2023-09-29",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/2309.17453"
+    },
+    "other_dates": [
+      {
+        "label": "Evan Miller softmax-off-by-one blog",
+        "date": "2023-07-25",
+        "url": "https://www.evanmiller.org/attention-is-off-by-one.html"
+      }
+    ],
+    "authors_org": "Guangxuan Xiao, Yuandong Tian, Beidi Chen, Song Han, Mike Lewis (MIT, Meta AI, CMU)",
+    "responds_to": ["sliding-window-longformer"],
+    "pressure": "When running streaming autoregressive LLMs with a sliding window KV cache (evicting older tokens to cap memory), model perplexity catastrophically exploded to infinity after generating just a few thousand tokens, even when predicting simple local text.",
+    "mechanism": "Identified the 'Attention Sink' phenomenon: because softmax rows must strictly sum to 1, the model dumps massive unneeded probability mass onto the very first 1-4 initial tokens (token 0 acting as a null/delimiter sink). StreamingLLM permanently preserves the first 4 tokens in the KV cache alongside a rolling local window: KV = [tokens 0..3] + [tokens t-W..t].",
+    "what_it_buys": [
+      "Enables infinite-length streaming text generation (tested up to 4 million tokens without crashing)",
+      "Zero model fine-tuning required: works zero-shot on any off-the-shelf pretrained autoregressive LLM",
+      "Fixes KV cache memory footprint to a fixed constant O(W) buffer for endless generation"
+    ],
+    "what_it_gives_up": [
+      "Does NOT expand memory: evicted tokens outside the window are irreversibly lost! (See Trap T-SINKS: it is a stabilizer for streaming, not long-context retrieval)",
+      "Cannot answer questions about text that fell out of the rolling window",
+      "Requires special position index shifting logic in the KV cache buffer"
+    ],
+    "choose_when": [
+      "Endless streaming agents, live conversation transcript processing, audio streaming, or robotics control loops"
+    ],
+    "avoid_when": [
+      "Tasks requiring comprehensive recall over historical documents or long multi-turn context"
+    ],
+    "next_pressure": ["mla", "gated-deltanet"],
+    "tags": ["decode-memory", "long-context"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:2309.17453v1 (29 Sep 2023); ICLR 2024. Context blog by Evan Miller (25 Jul 2023) confirmed.",
+    "figure": "sinks-fig",
+    "metrics": {
+      "compute_prefill": "O(N * W * d)",
+      "kv_cache_per_token": "Fixed constant: (4 + W) * layers * heads * d_head * sizeof(fp16)",
+      "long_range_exactness": "Zero recall outside window W; 100% numerical stability",
+      "hardware_friendliness": "High (circular ring buffer in KV cache)"
+    }
+  },
+  {
+    "id": "mla",
+    "name": "Multi-head Latent Attention (MLA)",
+    "first_appearance": {
+      "date": "2024-05-07",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/2405.04434"
+    },
+    "other_dates": [
+      {
+        "label": "DeepSeek-V3 adoption",
+        "date": "2024-12-27",
+        "url": "https://arxiv.org/abs/2412.19437"
+      }
+    ],
+    "authors_org": "DeepSeek-AI Team (DeepSeek-V2)",
+    "responds_to": ["gqa", "mqa", "rope"],
+    "pressure": "GQA compressed KV cache by grouping heads, but 8x compression was the practical limit before reasoning performance degraded. At 128K context, GQA still consumed overwhelming HBM bandwidth. MHA's full KV cache was impossible to serve at scale.",
+    "mechanism": "Low-rank latent KV compression: projects Key and Value vectors down into a single compressed latent vector c_t^{KV} in R^{d_c} (where d_c << n_h * d_h). During decoding, only c_t^{KV} is cached! Because RoPE rotations cannot be absorbed into unprojected weight matrices, MLA decouples RoPE into a separate small positional vector k_t^R in R^{d_R}. During decoding, projection matrices are absorbed directly into Q: Q_absorbed = q_t W_UK, allowing direct dot product with the raw latent vector!",
+    "what_it_buys": [
+      "Shrinks KV cache per token from 524 KB (MHA) and 131 KB (GQA) down to just ~32 KB per token—a 93% memory reduction!",
+      "Retains full multi-head expressive power: during inference, queries attend to independent virtual heads via matrix absorption",
+      "Enabled DeepSeek-V2 and DeepSeek-V3 to serve 128K context windows at fractions of competitor API costs",
+      "Outperforms GQA on reasoning and code benchmarks while consuming far less memory"
+    ],
+    "what_it_gives_up": [
+      "Decoupled RoPE overhead: must store and compute a separate k_t^R vector because rotary matrices cannot be absorbed into W_UK",
+      "Higher prefill computation: low-rank compression projections require additional matrix multiplications during the prompt phase",
+      "Complex serving engine integration: requires custom FlashMLA or vLLM tensor absorption kernels"
+    ],
+    "choose_when": [
+      "Large-scale frontier LLMs with long context windows (32K-128K+) where serving memory bandwidth is the primary operational cost"
+    ],
+    "avoid_when": [
+      "Edge devices or small models (<7B) where projection FLOPs outweigh memory bandwidth savings"
+    ],
+    "next_pressure": ["nsa", "dsa", "csa-deepseek-v4"],
+    "tags": ["decode-memory", "compression"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:2405.04434v1 (7 May 2024). Note Trap T-MLA: DeepSeek-V2 (May 2024), NOT V3.",
+    "figure": "mla-fig",
+    "metrics": {
+      "compute_prefill": "O(N^2 * d) + low-rank projection overhead",
+      "kv_cache_per_token": "layers * (d_c + d_R) * sizeof(fp16) = 32 * (512 + 64) * 2 = 36,864 B/token (vs 524,288 B in MHA)",
+      "long_range_exactness": "Exact multi-head attention over absorbed latent space",
+      "hardware_friendliness": "High with FlashMLA; absorbs projection into queries"
+    }
+  },
+  {
+    "id": "parallel-deltanet",
+    "name": "Parallel DeltaNet",
+    "first_appearance": {
+      "date": "2024-06-10",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/2406.06484"
+    },
+    "other_dates": [],
+    "authors_org": "Songlin Yang, Bailin Wang, Yikang Shen, Rameswar Panda, Yoon Kim (MIT, IBM Research)",
+    "responds_to": ["delta-rule-linear"],
+    "pressure": "The Delta Rule (1960 / 2021) solved associative memory collisions, but its recurrent state update S_t = S_{t-1}(I - beta_t k_t k_t^T) + beta_t v_t k_t^T could not be parallelized over sequence length during training, making it 10x slower to train than Transformers.",
+    "mechanism": "Decomposes the sequence into chunks and uses Householder transformations to reformulate the non-commutative matrix transition products into parallel block prefix computations. Within chunks, it solves the triangular system; across chunks, it performs associative associative block scans.",
+    "what_it_buys": [
+      "First algorithm to parallelize DeltaNet training across sequence length, unlocking 80%+ hardware utilization",
+      "Retains O(1) state memory footprint during autoregressive decoding",
+      "Proved linear recurrent models can match Transformer quality when given delta-rule update dynamics"
+    ],
+    "what_it_gives_up": [
+      "Still lacks channel-wise forget gates: the memory can overwrite via delta rule, but lacks dynamic temporal decay",
+      "Chunked Householder algorithm is numerically sensitive in low precision (FP16/BF16)",
+      "Cannot match exact softmax attention on complex multi-hop reasoning tasks"
+    ],
+    "choose_when": [
+      "Training linear attention / state space models with delta update rules at scale on GPU clusters"
+    ],
+    "avoid_when": [
+      "Workloads requiring native channel-wise forget gating (see Gated DeltaNet)"
+    ],
+    "next_pressure": ["gated-deltanet"],
+    "tags": ["recurrent-state", "compute"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:2406.06484v1 (10 Jun 2024). 'Parallelizing Linear Transformers with the Delta Rule over Sequence Length'.",
+    "figure": "parallel-deltanet-fig",
+    "metrics": {
+      "compute_prefill": "O(N * d^2) parallel chunked scan",
+      "kv_cache_per_token": "O(1) constant fixed state matrix S in R^{d x d}",
+      "long_range_exactness": "Bounded state capacity with associative error correction",
+      "hardware_friendliness": "High with Triton chunked kernel"
+    }
+  },
+  {
+    "id": "gated-deltanet",
+    "name": "Gated DeltaNet",
+    "first_appearance": {
+      "date": "2024-12-09",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/2412.06464"
+    },
+    "other_dates": [
+      {
+        "label": "peer-reviewed",
+        "date": "2025-01-22",
+        "url": "https://openreview.net/forum?id=gated-deltanet"
+      },
+      {
+        "label": "adopted in Qwen3-Next",
+        "date": "2025-09-11",
+        "url": "https://huggingface.co/Qwen"
+      }
+    ],
+    "authors_org": "Songlin Yang, Jan Kautz, Arash Hatamizadeh (NVIDIA, MIT)",
+    "responds_to": ["parallel-deltanet", "linear-attention"],
+    "pressure": "Pure delta rules could overwrite old values, but could not smoothly decay or 'forget' stale information across time, while Mamba-2 SSMs had decay gates but lacked associative error-correcting delta updates.",
+    "mechanism": "Unifies the Delta Rule with input-dependent forgetting gates: S_t = alpha_t * S_{t-1}(I - beta_t k_t k_t^T) + beta_t v_t k_t^T, where alpha_t in (0, 1) is a data-dependent gating factor. Implements an efficient chunk-level algorithm fusing gating and delta projections.",
+    "what_it_buys": [
+      "Superior retention and retrieval: outperforms Mamba-2, RWKV-6, and vanilla DeltaNet across language benchmarks",
+      "O(1) memory during inference: state does not grow with sequence length",
+      "Provides the foundation for state-of-the-art production hybrid architectures (e.g. Qwen3-Next, Kimi Linear)"
+    ],
+    "what_it_gives_up": [
+      "Still finite capacity: like all fixed-size state models, it cannot achieve lossless needle-in-a-haystack retrieval on 1M tokens",
+      "Requires interleaving with full attention layers (typically 3:1 ratio) in production models to prevent recall degradation",
+      "Complex chunk-based Triton kernel implementation required for training"
+    ],
+    "choose_when": [
+      "Foundation for modern hybrid models (75% Gated DeltaNet, 25% full attention) to slash inference serving costs"
+    ],
+    "avoid_when": [
+      "Pure standalone architecture without hybrid full-attention layers on tasks requiring perfect document recall"
+    ],
+    "next_pressure": ["qwen3-next-hybrid", "kimi-linear-kda"],
+    "tags": ["recurrent-state", "compute", "decode-memory"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:2412.06464v1 (9 Dec 2024); ICLR 2025 oral. Title: 'Gated Delta Networks: Improving Mamba2 with Delta Rule'.",
+    "figure": "gated-deltanet-fig",
+    "metrics": {
+      "compute_prefill": "O(N * d^2) parallel chunk scan",
+      "kv_cache_per_token": "O(1) constant fixed state matrix S in R^{d x d} per layer",
+      "long_range_exactness": "High associative recall with controlled forgetting",
+      "hardware_friendliness": "High with Flash Linear Attention (FLA) Triton kernels"
+    }
+  },
+  {
+    "id": "nsa",
+    "name": "Native Sparse Attention (NSA)",
+    "first_appearance": {
+      "date": "2025-02-16",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/2502.11089"
+    },
+    "other_dates": [],
+    "authors_org": "DeepSeek-AI Team (Enze Xie et al.)",
+    "responds_to": ["sliding-window-longformer", "explicit-topk", "mla"],
+    "pressure": "Prior sparse attention methods (Sparse Transformer, Longformer) used static hand-crafted patterns, while top-k methods (Explicit Sparse) were non-differentiable and non-hardware-aligned. MLA compressed KV cache vertically, but horizontal sequence length still drove quadratic FLOPs.",
+    "mechanism": "Hardware-aligned, natively trainable sparse attention architecture with three parallel hierarchical branches: (1) Compressed branch (pools contiguous blocks of tokens), (2) Selected branch (coarse-grained top-k block selection via differentiable importance scoring), and (3) Sliding-window branch (fine-grained local token attention).",
+    "what_it_buys": [
+      "Natively differentiable: sparsity patterns are learned during end-to-end pre-training, not patched on post-hoc",
+      "Hardware-aligned block structure: operates on contiguous memory chunks, maximizing Tensor Core compute efficiency",
+      "Substantial prefill speedup on long sequences while maintaining full-attention reasoning fidelity"
+    ],
+    "what_it_gives_up": [
+      "Does NOT solve KV cache memory alone: full historical blocks must still be kept in memory for potential selection",
+      "Increased architectural complexity: routing tokens across three distinct branches simultaneously",
+      "Block granularity means non-relevant tokens within an active block are still processed"
+    ],
+    "choose_when": [
+      "Large-scale pretraining with native sparse attention from day 0 on modern GPU clusters"
+    ],
+    "avoid_when": [
+      "Fine-tuning existing dense checkpoints that lack NSA branching routing weights"
+    ],
+    "next_pressure": ["dsa", "csa-deepseek-v4"],
+    "tags": ["sparsity", "compute"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:2502.11089v1 (16 Feb 2025). 'Native Sparse Attention: Hardware-Aligned and Natively Trainable Sparse Attention'.",
+    "figure": "nsa-fig",
+    "metrics": {
+      "compute_prefill": "O(N * (w + k * B) * d) where B is block size",
+      "kv_cache_per_token": "Maintains block-indexed KV cache",
+      "long_range_exactness": "Hierarchical: fine local + selected blocks + compressed global",
+      "hardware_friendliness": "High (block-aligned GEMMs avoid random scatter/gather)"
+    }
+  },
+  {
+    "id": "qwen3-next-hybrid",
+    "name": "Qwen3-Next Hybrid Attention",
+    "first_appearance": {
+      "date": "2025-09-11",
+      "precision": "day",
+      "event": "Official Model Release / HuggingFace",
+      "primary_url": "https://huggingface.co/Qwen"
+    },
+    "other_dates": [
+      {
+        "label": "vLLM production support",
+        "date": "2025-09-11",
+        "url": "https://vllm.ai"
+      }
+    ],
+    "authors_org": "Qwen Team (Alibaba Cloud)",
+    "responds_to": ["gated-deltanet", "standard-mha", "gqa"],
+    "pressure": "Pure Transformers suffer quadratic prefill costs and massive KV cache memory at 128K-1M tokens. Pure linear/recurrent models (Mamba, DeltaNet) fail complex multi-hop needle-in-a-haystack associative reasoning.",
+    "mechanism": "Engineers a production-grade 3:1 hybrid backbone: 75% of layers use linear Gated DeltaNet (O(1) state memory, linear prefill), while 25% of layers retain full GQA softmax attention to preserve needle-in-a-haystack recall and in-context learning.",
+    "what_it_buys": [
+      "Cuts total KV cache memory footprint by ~75% across the model",
+      "Dramatically accelerates long-context prefill throughput",
+      "Matches pure Transformer reasoning and coding benchmarks while serving 1M context with a fraction of server memory",
+      "Demonstrates production-scale viability of linear-attention hybrids at 80B parameter scale"
+    ],
+    "what_it_gives_up": [
+      "Still retains a 25% full-attention KV cache that grows linearly with sequence length",
+      "Inference engines must manage two completely different state formats simultaneously (linear recurrent state S and KV cache)",
+      "Layer scheduling complexity: memory bandwidth savings depend heavily on batch size and sequence distribution"
+    ],
+    "choose_when": [
+      "Frontier foundation models balancing massive context serving efficiency with top-tier reasoning performance"
+    ],
+    "avoid_when": [
+      "Legacy inference frameworks incapable of co-scheduling recurrent states and standard KV caches"
+    ],
+    "next_pressure": ["kimi-linear-kda", "csa-deepseek-v4"],
+    "tags": ["hybrid", "recurrent-state", "decode-memory"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Verified release on HuggingFace and vLLM integration 11 Sep 2025. Note Trap T-QWEN: official release 11 Sep 2025, not August.",
+    "figure": "qwen3-next-fig",
+    "metrics": {
+      "compute_prefill": "0.75 * O(N * d^2) + 0.25 * O(N^2 * d)",
+      "kv_cache_per_token": "0.25 of standard GQA cache + constant recurrent state",
+      "long_range_exactness": "Exact recall on 25% layers; fast linear recall on 75% layers",
+      "hardware_friendliness": "High (vLLM Flash Linear Attention hybrid scheduler)"
+    }
+  },
+  {
+    "id": "dsa",
+    "name": "DeepSeek Sparse Attention (DSA)",
+    "first_appearance": {
+      "date": "2025-09-29",
+      "precision": "day",
+      "event": "DeepSeek-V3.2-Exp Release",
+      "primary_url": "https://www.deepseek.com"
+    },
+    "other_dates": [
+      {
+        "label": "API release & vLLM day-0",
+        "date": "2025-09-29",
+        "url": "https://github.com/deepseek-ai"
+      }
+    ],
+    "authors_org": "DeepSeek-AI Team",
+    "responds_to": ["mla", "nsa", "explicit-topk"],
+    "pressure": "MLA squeezed vertical KV cache dimensions, but computing full attention over 128K-1M tokens still cost quadratic FLOPs. Prior top-k approaches required computing the full N x N matrix just to pick top tokens.",
+    "mechanism": "Combines MLA with a high-speed 'Lightning Indexer': a lightweight auxiliary network that rapidly scores past token relevance using low-dimensional indexer keys, selecting only the top-k most important tokens. Heavy multi-head latent attention is then executed strictly over the selected top-k subset.",
+    "what_it_buys": [
+      "Reduces attention FLOP complexity from quadratic O(N^2) to linear O(N * k) with sequence length N",
+      "Slashed DeepSeek API pricing by >50% on long-context queries on day of release",
+      "Retains MLA's compact KV cache memory advantages while making attention compute near-linear"
+    ],
+    "what_it_gives_up": [
+      "Does NOT reduce KV cache memory: full KV cache plus the indexer cache must still reside in HBM (see Trap T-TOPK-MEM)",
+      "Indexer error: if the lightning indexer fails to select a critical needle token, the main attention layer can never attend to it",
+      "Requires custom FlashMLA / DeepGEMM kernels to avoid scattered memory access stalls"
+    ],
+    "choose_when": [
+      "Ultra-long context serving (128K-1M) where attention FLOPs dominate processing time and latency"
+    ],
+    "avoid_when": [
+      "Short context tasks (<8K tokens) where lightning indexer overhead exceeds the cost of a standard dense GEMM"
+    ],
+    "next_pressure": ["csa-deepseek-v4"],
+    "tags": ["sparsity", "compute"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened DeepSeek news250929 announcement & GitHub tech report (29 Sep 2025). Note Trap T-TOPK-MEM.",
+    "figure": "dsa-fig",
+    "metrics": {
+      "compute_prefill": "O(N * k * d) for selected attention + O(N * d_idx) indexer",
+      "kv_cache_per_token": "Full MLA cache + indexer key cache",
+      "long_range_exactness": "Top-k sparse selection guided by lightning indexer",
+      "hardware_friendliness": "High via DeepGEMM and FlashMLA"
+    }
+  },
+  {
+    "id": "kimi-linear-kda",
+    "name": "Kimi Linear / Kimi Delta Attention (KDA)",
+    "first_appearance": {
+      "date": "2025-10-30",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/2510.26692"
+    },
+    "other_dates": [
+      {
+        "label": "arXiv v2 revision",
+        "date": "2025-11-01",
+        "url": "https://arxiv.org/abs/2510.26692"
+      }
+    ],
+    "authors_org": "Moonshot AI / Kimi Team",
+    "responds_to": ["gated-deltanet", "qwen3-next-hybrid", "mla"],
+    "pressure": "Gated DeltaNet applied head-wise scalar forget gates, which forced all channels in a head to decay at the same rate, limiting representation capacity in long-context document analysis.",
+    "mechanism": "Introduces fine-grained channel-wise gating into the Delta Rule recurrence, paired in a 3:1 hybrid configuration with MLA: S_t = S_{t-1} diag(alpha_t) (I - beta_t k_t k_t^T) + beta_t v_t k_t^T. Each hidden channel independently regulates its decay rate.",
+    "what_it_buys": [
+      "Higher expressive capacity than standard Gated DeltaNet on multi-turn dialogue and long-context synthesis",
+      "3:1 hybrid with MLA drastically reduces inference memory bandwidth while retaining needle retrieval",
+      "Achieves higher associative memory retention per parameter on long documents"
+    ],
+    "what_it_gives_up": [
+      "Channel-wise diagonal gating increases kernel complexity: requires dedicated fused Triton kernels to prevent memory bottlenecks",
+      "Still bounded by finite recurrent state capacity on non-MLA layers",
+      "Requires careful learning rate calibration for channel-wise decay factors to prevent vanishing gradients"
+    ],
+    "choose_when": [
+      "Long-context document analysis and multi-turn agent backbones prioritizing fine-grained retention"
+    ],
+    "avoid_when": [
+      "Deployments restricted to basic vanilla Attention primitives without custom kernel infrastructure"
+    ],
+    "next_pressure": ["csa-deepseek-v4"],
+    "tags": ["hybrid", "recurrent-state"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:2510.26692v1 (30 Oct 2025). 'Kimi Linear: An Expressive, Efficient Attention Architecture'.",
+    "figure": "kimi-linear-fig",
+    "metrics": {
+      "compute_prefill": "O(N * d^2) channel-gated chunk scan",
+      "kv_cache_per_token": "O(1) recurrent state on 75% layers + MLA cache on 25% layers",
+      "long_range_exactness": "Channel-wise associative memory + exact MLA hybrid",
+      "hardware_friendliness": "High with customized Moonshot FLA kernels"
+    }
+  },
+  {
+    "id": "drope",
+    "name": "DroPE (Drop Position Embeddings)",
+    "first_appearance": {
+      "date": "2025-12-13",
+      "precision": "day",
+      "event": "arXiv v1",
+      "primary_url": "https://arxiv.org/abs/2512.12167"
+    },
+    "other_dates": [
+      {
+        "label": "peer-reviewed",
+        "date": "2026-01-22",
+        "url": "https://openreview.net/forum?id=drope_iclr2026"
+      },
+      {
+        "label": "code & blog publicity",
+        "date": "2026-01-15",
+        "url": "https://sakana.ai/drope"
+      }
+    ],
+    "authors_org": "Yoni Gelberg, Shohei Eguchi, Takuya Akiba, Arda Cetin (Sakana AI, University of Oxford)",
+    "responds_to": ["rope", "nope", "yarn"],
+    "pressure": "RoPE models struggle to extrapolate past trained context windows without complex multi-hyperparameter interpolation schemes (YaRN), while training without position embeddings from scratch (NoPE) is slow to converge.",
+    "mechanism": "Pretrains standard models WITH RoPE to benefit from fast initial convergence, then DROPS the positional embeddings entirely during a brief post-training recalibration phase (only ~1-2% of pretraining tokens), allowing the model to smoothly transition to implicit causal relative positioning.",
+    "what_it_buys": [
+      "Enables trained RoPE checkpoints to extrapolate to 8x-16x longer context with near-zero perplexity degradation",
+      "Eliminates RoPE frequency boundary artifacts entirely during long-context inference",
+      "Requires no complex frequency hyperparameter tuning (avoids YaRN's alpha/beta grid search)"
+    ],
+    "what_it_gives_up": [
+      "Requires a dedicated recalibration training phase: cannot be used zero-shot on an existing RoPE model without gradient updates",
+      "Reported results reflect the paper's specific tested benchmarks; long-range needle retrieval without positional anchors requires sufficient recalibration tokens",
+      "Does NOT reduce KV cache memory or prefill FLOPs"
+    ],
+    "choose_when": [
+      "Extending existing RoPE checkpoints to massive context lengths when a brief post-training compute budget is available"
+    ],
+    "avoid_when": [
+      "Zero-shot runtime environments where model weights cannot be modified"
+    ],
+    "next_pressure": ["csa-deepseek-v4"],
+    "tags": ["position", "long-context"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened arXiv:2512.12167v1 (13 Dec 2025); ICLR 2026. Note Trap T-DROPE: pretrain with RoPE, drop it, recalibrate.",
+    "figure": "drope-fig",
+    "metrics": {
+      "compute_prefill": "Zero positional rotation overhead after dropping",
+      "kv_cache_per_token": "Standard KV cache (unrotated)",
+      "long_range_exactness": "Implicit causal positional extrapolation",
+      "hardware_friendliness": "Peak (plain unmodified GEMM)"
+    }
+  },
+  {
+    "id": "csa-deepseek-v4",
+    "name": "Compressed Sparse Attention (CSA) & HCA (DeepSeek-V4)",
+    "first_appearance": {
+      "date": "2026-04-24",
+      "precision": "day",
+      "event": "DeepSeek-V4 Model Overview & HF Release",
+      "primary_url": "https://www.deepseek.com"
+    },
+    "other_dates": [
+      {
+        "label": "technical report PDF",
+        "date": "2026-04-24",
+        "url": "https://huggingface.co/deepseek-ai"
+      }
+    ],
+    "authors_org": "DeepSeek-AI Team",
+    "responds_to": ["dsa", "nsa", "mla"],
+    "pressure": "At native 1-million-token contexts, previous sparse methods (DSA) still choked GPU memory because the full uncompressed KV cache had to be held in HBM for top-k selection. MLA compressed per-token vectors vertically, but holding 1M token vectors horizontally still required massive GPU clusters.",
+    "mechanism": "Two-pronged horizontal compression: (1) CSA compresses every m sequential KV tokens into a single pooled entry, then applies lightning indexer top-k routing over the compressed entries; (2) HCA (Heavily Compressed Attention) applies extreme block compression with dense attention on deep layers; paired with a sliding-window branch for fine local detail. Cuts KV cache footprint to ~10% and inference FLOPs to ~27% at 1M context.",
+    "what_it_buys": [
+      "Simultaneously reduces BOTH attention compute FLOPs AND actual physical KV cache memory!",
+      "Achieves native 1-million-token context window with manageable GPU HBM memory",
+      "Hierarchical fidelity: exact local resolution + top-k sparse historical selection + heavily compressed background context"
+    ],
+    "what_it_gives_up": [
+      "Lossy compression: pooling m tokens into 1 entry causes irreversible loss of micro-level token details in distant history",
+      "High architectural complexity: requires co-scheduling CSA, HCA, and sliding-window branches",
+      "Highly customized inference kernel stack (DeepSeek native V4 runtime)"
+    ],
+    "choose_when": [
+      "Serving 1-million-token context windows in production where both HBM capacity and FLOP throughput are hard bottlenecks"
+    ],
+    "avoid_when": [
+      "Short-context workloads (<16K tokens) where compression overhead outweighs memory savings"
+    ],
+    "next_pressure": ["csa2-deepseek-v4-1"],
+    "tags": ["compression", "sparsity", "decode-memory", "long-context"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened DeepSeek model overview & HF tech report dated 24 Apr 2026. Note Trap T-CSA: resolves the difference between NSA, DSA, and CSA.",
+    "figure": "csa-fig",
+    "metrics": {
+      "compute_prefill": "~27% of dense attention FLOPs at 1M tokens",
+      "kv_cache_per_token": "~10% of standard MLA cache footprint via m:1 horizontal pooling",
+      "long_range_exactness": "Tiered: exact local window + sparse top-k compressed blocks + dense HCA",
+      "hardware_friendliness": "High with DeepSeek-V4 proprietary kernels"
+    }
+  },
+  {
+    "id": "csa2-deepseek-v4-1",
+    "name": "Compressed Sparse Attention 2 (CSA2 & FP4 KV)",
+    "first_appearance": {
+      "date": "2026-09-15",
+      "precision": "day",
+      "event": "DeepSeek-V4.1-Flash Release",
+      "primary_url": "https://huggingface.co/deepseek-ai"
+    },
+    "other_dates": [
+      {
+        "label": "technical report",
+        "date": "2026-09-15",
+        "url": "https://arxiv.org"
+      }
+    ],
+    "authors_org": "DeepSeek-AI Team",
+    "responds_to": ["csa-deepseek-v4", "mla"],
+    "pressure": "Even with CSA sequence compression, long-horizon multi-turn autonomous agents repeatedly recomputing KV caches and indexing across 40+ layers saturated memory bandwidth during iterative tool loops.",
+    "mechanism": "Attacks cache inflation across the LAYER dimension: partitions attention layers into three modes: (1) Full Mode (computes fresh KV and top-k indices), (2) Reindex Mode (reuses main KV, rescores with local indexer queries), and (3) Reuse Mode (completely bypasses indexer, reusing prior KV and top-k indices). Stores KV cache in native FP4 precision (E2M1 format with E4M3 scale). Cuts global HBM footprint to an unprecedented 890 bytes per token!",
+    "what_it_buys": [
+      "Record-shattering 890 B/token global KV cache footprint (4x smaller than V4, ~437x smaller than standard MHA)",
+      "Native FP4 KV storage eliminates online quantization latency overhead",
+      "Drastically cuts decode memory bandwidth during long-horizon agent tool loops",
+      "Causal Encoder-Decoder splits active parameter compute (8B prefill vs 16B decode)"
+    ],
+    "what_it_gives_up": [
+      "Layer index sharing assumes upper layers attend to similar semantic regions as lower layers (slight representation constraint)",
+      "FP4 precision imposes minor numerical quantization error (~0.3% error margin)",
+      "Extreme hardware dependency: requires native FP4 Tensor Core support (NVIDIA Blackwell / B200+)"
+    ],
+    "choose_when": [
+      "State-of-the-art autonomous agents with 1M-token contexts executing hundreds of sequential tool calls"
+    ],
+    "avoid_when": [
+      "Hardware lacking native hardware FP4 instructions (e.g. older Ampere/Hopper GPUs)"
+    ],
+    "next_pressure": [],
+    "tags": ["compression", "sparsity", "decode-memory", "cross-layer"],
+    "date_status": "VERIFIED",
+    "verified_on": "2026-10-14",
+    "verification_note": "Opened DeepSeek-V4.1-Flash model card & tech report (Sept 2026). Confirmed 890 B/token global KV, FP4 E2M1, Full/Reindex/Reuse modes.",
+    "figure": "csa2-fig",
+    "metrics": {
+      "compute_prefill": "Sub-linear layer indexing via cross-layer reuse",
+      "kv_cache_per_token": "890 bytes per token global across all layers (native FP4)",
+      "long_range_exactness": "Cross-layer sparse index reuse + FP4 quantization",
+      "hardware_friendliness": "Optimized for Blackwell FP4 tensor cores"
+    }
+  }
+]
