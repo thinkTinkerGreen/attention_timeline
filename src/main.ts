@@ -1,4 +1,4 @@
-// Attention Timeline - Application Entrypoint (Classic Research View)
+// Attention Timeline - Application Entrypoint (Research Station)
 // Single source of truth: data/mechanisms.json
 
 import mechanismsData from '../data/mechanisms.json';
@@ -60,7 +60,7 @@ function renderApp() {
             <div>
               <div class="title-with-edition">
                 <h1 class="brand-title">How Does Attention Work Now?</h1>
-                <span class="edition-badge">Classic Research View</span>
+                <span class="edition-badge">Research Station</span>
               </div>
               <p class="text-sm text-muted">A Chronological, Honest, and Interactive Explainer (2014 &ndash; 2026)</p>
             </div>
@@ -70,11 +70,11 @@ function renderApp() {
             <!-- Alternative View Switcher -->
             <div class="view-switcher" role="group" aria-label="Interface Edition Switcher">
               <span class="switcher-label">View:</span>
-              <a href="./index.html" class="view-switch-btn active" title="Currently viewing Classic Research Edition">
-                <span class="view-dot"></span> Classic
+              <a href="./index.html" class="view-switch-btn active" title="Currently viewing Research Station">
+                <span class="view-dot"></span> Research Station
               </a>
-              <a href="./apple.html" class="view-switch-btn" title="Switch to Apple.com Design Edition">
-                 Apple Edition
+              <a href="./apple.html" class="view-switch-btn" title="Switch to Editorial Story View">
+                Editorial Story
               </a>
             </div>
 

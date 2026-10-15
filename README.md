@@ -12,14 +12,14 @@
 
 The project provides **two distinct UI presentations** of the exact same verified research dataset, allowing direct visual and pedagogical comparison:
 
-1. **Classic Research View:** [https://shiny-licorice-6edd7b.netlify.app](https://shiny-licorice-6edd7b.netlify.app)
+1. **Research Station View:** [https://hilarious-kitsune-6664a3.netlify.app](https://hilarious-kitsune-6664a3.netlify.app)
    * Technical workstation layout with sticky navigation rail, persistent live cost ledger, and deep ML diagnostics.
-2. **Apple Design Edition:** [https://shiny-licorice-6edd7b.netlify.app/apple.html](https://shiny-licorice-6edd7b.netlify.app/apple.html)
+2. **Editorial Story Edition:** [https://hilarious-kitsune-6664a3.netlify.app/apple.html](https://hilarious-kitsune-6664a3.netlify.app/apple.html)
    * Conforms to **Apple.com Human Interface Guidelines & product showcase standards**: SF Pro typography, frosted glass vibrancy, Apple segmented controls, and minimalist bento grid storytelling.
    * Both editions feature an instant 1-click **View Switcher** in the header.
 
 * **Default Password:** `My-Drop-Site` *(assigned by Netlify for anonymous drop deploys)*
-* **Claim Your Site on Netlify:** [Claim Site Link](https://app.netlify.com/drop/shiny-licorice-6edd7b#drop_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTIwMDY4ODYsImV4cCI6MTc5MjAxMDQ4NiwiaXNzIjoiTmV0bGlmeSIsInNlc3Npb25faWQiOiI4OTg5MWYwNC0xZDg5LTRhNjEtYTg4YS0yYzQyNjVhNjRkMzcifQ.6aNY9zWfH4Nh3xVx0-g2kBr4vE63IgXkyXJusZvaXPo) *(claim within 60 minutes to attach to your account and unlock password restrictions)*
+* **Claim Your Site on Netlify:** [Claim Site Link](https://app.netlify.com/drop/hilarious-kitsune-6664a3#drop_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTIwMjI4NjMsImV4cCI6MTc5MjAyNjQ2MywiaXNzIjoiTmV0bGlmeSIsInNlc3Npb25faWQiOiJkYTQzMDdjNS1iYWU2LTRiYjYtYjZkNy03NzYwYzUyYTMyOTAifQ.bK038Nl_P9pzE8EawtPml3FqbckrAsjGxKUf6Iyfhkk)
 * **GitHub Repository:** [https://github.com/thinkTinkerGreen/attention_timeline](https://github.com/thinkTinkerGreen/attention_timeline)
 
 ---
@@ -141,7 +141,7 @@ npm run dev
 # Run TypeScript + Vitest data and numerical tests
 npm test
 
-# Build production bundle (both Classic and Apple editions)
+# Build production bundle (both Research Station and Editorial Story editions)
 npm run build
 ```
 

@@ -48,8 +48,8 @@ function renderAppleApp() {
 
           <!-- View Switcher -->
           <div class="apple-view-switch" role="group" aria-label="View Switcher">
-            <a href="./index.html" class="apple-switch-link" title="Switch to Classic Research View">Classic View</a>
-            <a href="./apple.html" class="apple-switch-link active" title="Currently on Apple Design Edition"> Apple Edition</a>
+            <a href="./index.html" class="apple-switch-link" title="Switch to Research Station">Research Station</a>
+            <a href="./apple.html" class="apple-switch-link active" title="Currently viewing Editorial Story">Editorial Story</a>
           </div>
         </div>
       </nav>
@@ -297,11 +297,11 @@ function renderAppleApp() {
       <footer class="apple-footer">
         <div class="apple-footer-inner">
           <div>
-            <strong>How Does Attention Work Now?</strong> &bull; Apple.com Design Edition.
+            <strong>How Does Attention Work Now?</strong> &bull; Editorial Story Edition.
             <p style="margin-top: 0.25rem;">All 30 mechanisms verified against primary sources on October 14, 2026.</p>
           </div>
           <div class="apple-footer-links">
-            <a href="./index.html">Classic Research View</a>
+            <a href="./index.html">Research Station</a>
             &bull;
             <a href="https://github.com/thinkTinkerGreen/attention_timeline" target="_blank" rel="noopener noreferrer">GitHub</a>
             &bull;
